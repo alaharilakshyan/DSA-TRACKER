@@ -1,0 +1,513 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Smart DSA Tracker — Track your Data Structures & Algorithms interview prep with an SM-2 spaced-repetition revision engine and deep analytics.">
+  <meta name="color-scheme" content="light dark">
+  <title>{% block title %}Smart DSA Tracker{% endblock %}</title>
+
+  <!-- Google Fonts: Outfit (Bold Modern Display), Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap 5.3 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+
+  <!-- Latest Icon Packs: Remix Icon 4.2+ & Lucide Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Bootstrap Icons (for backwards compatibility) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <!-- Tailwind CSS CDN (tailwind.config MUST be defined BEFORE script to disable preflight) -->
+  <script>
+    tailwind = {
+      config: {
+        darkMode: ['class', '[data-bs-theme="dark"]'],
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                50: '#eef2ff',
+                100: '#e0e7ff',
+                200: '#c7d2fe',
+                300: '#a5b4fc',
+                400: '#818cf8',
+                500: '#6366f1',
+                600: '#4f46e5',
+                700: '#4338ca',
+                800: '#3730a3',
+                900: '#312e81',
+              }
+            },
+            fontFamily: {
+              heading: ['"Outfit"', 'sans-serif'],
+              sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+              mono: ['"JetBrains Mono"', 'monospace'],
+            }
+          }
+        },
+        corePlugins: {
+          preflight: false,
+        }
+      }
+    };
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Custom Design System with Cache-Buster -->
+  <link rel="stylesheet" href="{% static 'tracker/css/style.css' %}?v=3.8">
+
+  <!-- Early Theme Detection to prevent flash of wrong theme -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('smart-dsa-theme');
+      if (savedTheme) {
+        document.documentElement.setAttribute('data-bs-theme', savedTheme);
+      } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.setAttribute('data-bs-theme', 'dark');
+      }
+    })();
+  </script>
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar navbar-custom py-2" id="mainNavbar">
+    <div class="container-xl d-flex align-items-center justify-content-between flex-nowrap">
+      
+      <!-- Brand & Hamburger Area (Left) -->
+      <div class="d-flex align-items-center gap-2 flex-shrink-0">
+        <!-- Side Hamburger Menu Button (Available for all users, primary navigation for logged-in accounts) -->
+        <button class="btn btn-hamburger" type="button" data-bs-toggle="offcanvas" data-bs-target="#sideHamburgerNavbar" aria-controls="sideHamburgerNavbar" title="Open Navigation Menu" aria-label="Open Navigation Menu">
+          <i class="ri-menu-2-line fs-5"></i>
+        </button>
+
+        <!-- Brand Logo & Name -->
+        <a class="navbar-brand navbar-brand-custom me-2 me-xl-3 flex-shrink-0" href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'landing' %}{% endif %}">
+          <div class="brand-icon" style="background: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%); box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);">
+            <i class="ri-brain-line"></i>
+          </div>
+          <span class="font-heading">Smart <span style="color: var(--primary-color) !important;">DSA</span> Tracker</span>
+        </a>
+      </div>
+
+      <!-- Center Nav Links: Shown ONLY for unauthenticated visitors on desktop to keep logged-in workspace completely uncluttered -->
+      <div class="d-none d-lg-flex align-items-center gap-1 mx-auto">
+        {% if not user.is_authenticated %}
+          <a class="nav-link nav-link-custom d-flex align-items-center" href="{% url 'landing' %}#features">
+            <i class="ri-sparkles-fill text-warning me-1.5 fs-6"></i>
+            <span>Features</span>
+          </a>
+          <a class="nav-link nav-link-custom d-flex align-items-center" href="{% url 'skill_graph' %}">
+            <i class="ri-git-merge-line text-primary me-1.5 fs-6"></i>
+            <span>Skill Graph</span>
+          </a>
+          <a class="nav-link nav-link-custom d-flex align-items-center" href="{% url 'interview_hub' %}">
+            <i class="ri-terminal-box-line text-danger me-1.5 fs-6"></i>
+            <span>Mock Interview</span>
+          </a>
+          <a class="nav-link nav-link-custom d-flex align-items-center" href="{% url 'revision_today' %}">
+            <i class="ri-repeat-2-line text-success me-1.5 fs-6"></i>
+            <span>Spaced Repetition</span>
+          </a>
+        {% endif %}
+      </div>
+
+      <!-- Right Action Cluster: ALWAYS VISIBLE across all screen sizes -->
+      <div class="d-flex align-items-center gap-2 flex-shrink-0 ms-auto ms-lg-0">
+        <!-- Dark Mode Toggle Button -->
+        <button id="themeToggleBtn" class="theme-toggle-btn" type="button" title="Toggle Light/Dark Theme" aria-label="Toggle theme">
+          <i class="ri-moon-line" id="themeIcon"></i>
+        </button>
+
+        {% if user.is_authenticated %}
+          <a href="{% url 'problem_create' %}" class="btn btn-primary-custom btn-sm d-none d-sm-inline-flex align-items-center gap-1.5 shadow-sm font-heading fw-semibold">
+            <i class="ri-add-line fs-5"></i>
+            <span>Add Problem</span>
+          </a>
+
+          <!-- User Menu Dropdown -->
+          <div class="dropdown">
+            <button class="btn btn-secondary-custom btn-sm dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="ri-user-smile-line text-primary fs-5"></i>
+              <span class="fw-semibold">{{ user.username }}</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm border" style="background: var(--bg-surface);">
+              <li><h6 class="dropdown-header text-muted">Signed in as <strong>{{ user.username }}</strong></h6></li>
+              <li><a class="dropdown-item py-2" href="#" data-bs-toggle="modal" data-bs-target="#leetcodeSyncModal"><i class="ri-code-s-slash-line me-2 text-warning"></i>LeetCode Auto-Sync</a></li>
+              <li><a class="dropdown-item py-2" href="{% url 'export_report' %}"><i class="ri-file-pdf-line me-2 text-info"></i>Readiness Report (PDF)</a></li>
+              {% if user.is_staff %}
+              <li><a class="dropdown-item py-2" href="{% url 'admin:index' %}"><i class="ri-shield-keyhole-line me-2"></i>Django Admin</a></li>
+              {% endif %}
+              <li><hr class="dropdown-divider my-1"></li>
+              <li>
+                <form action="{% url 'logout' %}" method="post" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="dropdown-item text-danger py-2 w-100 text-start bg-transparent border-0">
+                    <i class="ri-logout-box-r-line me-2"></i>Log out
+                  </button>
+                </form>
+              </li>
+            </ul>
+          </div>
+        {% else %}
+          <!-- Log In Button -->
+          <a href="{% url 'login' %}" class="btn-navbar-signin" title="Log In">
+            <i class="ri-login-box-line"></i>
+            <span>Log In</span>
+          </a>
+          
+          <!-- Sign Up Button -->
+          <a href="{% url 'signup' %}" class="btn-navbar-signup" title="Create Free Account">
+            <i class="ri-user-add-line"></i>
+            <span>Sign Up</span>
+          </a>
+        {% endif %}
+      </div>
+
+    </div>
+  </nav>
+
+  <!-- ==========================================================================
+       SIDE HAMBURGER NAVBAR (Offcanvas Navigation Drawer)
+       Provides a smooth, collapsible side navigation without cramping top bar
+       ========================================================================== -->
+  <div class="offcanvas offcanvas-start side-nav-drawer" tabindex="-1" id="sideHamburgerNavbar" aria-labelledby="sideHamburgerNavbarLabel">
+    
+    <!-- Drawer Header -->
+    <div class="offcanvas-header border-bottom py-3 px-4">
+      <div class="d-flex align-items-center gap-2" id="sideHamburgerNavbarLabel">
+        <div class="brand-icon" style="background: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%); width: 34px; height: 34px; font-size: 1.1rem; box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);">
+          <i class="ri-brain-line"></i>
+        </div>
+        <span class="font-heading fw-bold fs-5">Smart <span style="color: var(--primary-color);">DSA</span> Tracker</span>
+      </div>
+      <button type="button" class="btn-close-custom" data-bs-dismiss="offcanvas" aria-label="Close">
+        <i class="ri-close-line fs-4"></i>
+      </button>
+    </div>
+
+    <!-- Drawer Body -->
+    <div class="offcanvas-body d-flex flex-column justify-content-between p-3 px-4">
+      
+      <div class="drawer-content-top">
+        {% if user.is_authenticated %}
+          <!-- User Profile Mini Card -->
+          <div class="drawer-user-card p-3 rounded-3 mb-4">
+            <div class="d-flex align-items-center gap-3">
+              <div class="user-avatar-circle">
+                {% if user.profile.leetcode_avatar_url %}
+                  <img src="{{ user.profile.leetcode_avatar_url }}" alt="{{ user.username }}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                {% else %}
+                  <i class="ri-user-smile-line fs-4"></i>
+                {% endif %}
+              </div>
+              <div class="flex-grow-1 overflow-hidden">
+                <div class="fw-bold font-heading text-truncate fs-6" style="color: var(--text-main);">{{ user.username }}</div>
+                <div class="small text-muted d-flex align-items-center gap-1 mt-0.5">
+                  {% if user.profile.leetcode_username %}
+                    <span class="badge bg-warning-subtle text-warning font-mono" style="font-size: 0.72rem;">@{{ user.profile.leetcode_username }}</span>
+                  {% else %}
+                    <span class="badge bg-primary-subtle text-primary font-mono" style="font-size: 0.72rem;">DSA Candidate</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 1: CORE WORKSPACE -->
+          <div class="drawer-section-label">WORKSPACE</div>
+          <nav class="nav flex-column gap-1 mb-4">
+            <a class="drawer-nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">
+              <i class="ri-dashboard-2-line drawer-nav-icon text-primary"></i>
+              <span>Dashboard Overview</span>
+            </a>
+            <a class="drawer-nav-item {% if request.resolver_match.url_name == 'problem_list' %}active{% endif %}" href="{% url 'problem_list' %}">
+              <i class="ri-code-box-line drawer-nav-icon text-info"></i>
+              <span>Problems Explorer</span>
+            </a>
+            <a class="drawer-nav-item {% if request.resolver_match.url_name == 'problem_create' %}active{% endif %}" href="{% url 'problem_create' %}">
+              <i class="ri-add-circle-line drawer-nav-icon text-success"></i>
+              <span>Add New Problem</span>
+            </a>
+          </nav>
+
+          <!-- Section 2: INTELLIGENT DSA ENGINES -->
+          <div class="drawer-section-label">INTELLIGENT ENGINES</div>
+          <nav class="nav flex-column gap-1 mb-4">
+            <a class="drawer-nav-item {% if request.resolver_match.url_name == 'skill_graph' %}active{% endif %}" href="{% url 'skill_graph' %}">
+              <i class="ri-git-merge-line drawer-nav-icon text-primary"></i>
+              <span class="flex-grow-1">Topological Skill Graph</span>
+              <span class="badge bg-primary-subtle text-primary fw-semibold" style="font-size: 0.68rem;">Mastery</span>
+            </a>
+            <a class="drawer-nav-item {% if 'interview' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'interview_hub' %}">
+              <i class="ri-terminal-box-line drawer-nav-icon text-danger"></i>
+              <span class="flex-grow-1">Mock Interview</span>
+              <span class="badge bg-danger-subtle text-danger fw-semibold" style="font-size: 0.68rem;">Simulator</span>
+            </a>
+            <a class="drawer-nav-item {% if request.resolver_match.url_name == 'revision_today' %}active{% endif %}" href="{% url 'revision_today' %}">
+              <i class="ri-repeat-2-line drawer-nav-icon text-success"></i>
+              <span class="flex-grow-1">Spaced Repetition</span>
+              <span class="badge bg-success-subtle text-success fw-semibold font-mono" style="font-size: 0.68rem;">SM-2</span>
+            </a>
+          </nav>
+
+          <!-- Section 3: TOOLS & INTEGRATIONS -->
+          <div class="drawer-section-label">TOOLS & REPORTS</div>
+          <nav class="nav flex-column gap-1 mb-3">
+            <a class="drawer-nav-item" href="#" data-bs-toggle="modal" data-bs-target="#leetcodeSyncModal" data-bs-dismiss="offcanvas">
+              <i class="ri-code-s-slash-line drawer-nav-icon text-warning"></i>
+              <span>LeetCode Auto-Sync</span>
+            </a>
+            <a class="drawer-nav-item" href="{% url 'export_report' %}">
+              <i class="ri-file-pdf-line drawer-nav-icon text-info"></i>
+              <span>Readiness Report (PDF)</span>
+            </a>
+            <a class="drawer-nav-item" href="{% url 'welcome' %}#features">
+              <i class="ri-sparkles-fill drawer-nav-icon text-warning"></i>
+              <span>Features & Architecture</span>
+            </a>
+            {% if user.is_staff %}
+            <a class="drawer-nav-item" href="{% url 'admin:index' %}">
+              <i class="ri-shield-keyhole-line drawer-nav-icon text-secondary"></i>
+              <span>Django Admin</span>
+            </a>
+            {% endif %}
+          </nav>
+        {% else %}
+          <!-- Visitor Drawer Navigation -->
+          <div class="drawer-section-label">EXPLORE SMART DSA</div>
+          <nav class="nav flex-column gap-1 mb-4">
+            <a class="drawer-nav-item" href="{% url 'landing' %}#features">
+              <i class="ri-sparkles-fill drawer-nav-icon text-warning"></i>
+              <span>Features</span>
+            </a>
+            <a class="drawer-nav-item" href="{% url 'skill_graph' %}">
+              <i class="ri-git-merge-line drawer-nav-icon text-primary"></i>
+              <span>Skill Graph</span>
+            </a>
+            <a class="drawer-nav-item" href="{% url 'interview_hub' %}">
+              <i class="ri-terminal-box-line drawer-nav-icon text-danger"></i>
+              <span>Mock Interview</span>
+            </a>
+            <a class="drawer-nav-item" href="{% url 'revision_today' %}">
+              <i class="ri-repeat-2-line drawer-nav-icon text-success"></i>
+              <span>Spaced Repetition</span>
+            </a>
+          </nav>
+
+          <div class="p-3 rounded-3 mb-3" style="background: var(--bg-surface-subtle); border: 1px solid var(--border-color);">
+            <p class="small text-muted mb-3">Sign in or create an account to start tracking patterns with SuperMemo-2 active recall.</p>
+            <div class="d-grid gap-2">
+              <a href="{% url 'login' %}" class="btn-navbar-signin justify-content-center">
+                <i class="ri-login-box-line"></i>
+                <span>Log In</span>
+              </a>
+              <a href="{% url 'signup' %}" class="btn-navbar-signup justify-content-center">
+                <i class="ri-user-add-line"></i>
+                <span>Sign Up Free</span>
+              </a>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Drawer Footer -->
+      <div class="drawer-footer border-top pt-3 mt-auto">
+        {% if user.is_authenticated %}
+          <form action="{% url 'logout' %}" method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2 py-2" style="border-radius: 10px; font-weight: 600;">
+              <i class="ri-logout-box-r-line fs-5"></i>
+              <span>Log Out</span>
+            </button>
+          </form>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Flash Messages Container -->
+  <div class="container-xl mt-3">
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'success' %}success{% elif message.tags == 'info' %}info{% else %}primary{% endif %} alert-custom alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+          {% if message.tags == 'success' %}
+            <i class="bi bi-check-circle-fill text-success fs-5"></i>
+          {% elif message.tags == 'error' %}
+            <i class="bi bi-exclamation-triangle-fill text-danger fs-5"></i>
+          {% elif message.tags == 'info' %}
+            <i class="bi bi-info-circle-fill text-info fs-5"></i>
+          {% else %}
+            <i class="bi bi-bell-fill fs-5"></i>
+          {% endif %}
+          <div class="flex-grow-1">{{ message }}</div>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  <!-- Main Content Block -->
+  <main class="flex-grow-1">
+    {% block full_content %}
+      <div class="container-xl py-4">
+        {% block content %}{% endblock %}
+      </div>
+    {% endblock %}
+  </main>
+
+  <!-- Modal: LeetCode Auto-Sync Integration -->
+  {% if user.is_authenticated %}
+  <div class="modal fade" id="leetcodeSyncModal" tabindex="-1" aria-labelledby="leetcodeSyncModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-color);">
+        <div class="modal-header border-bottom">
+          <div class="d-flex align-items-center gap-2">
+            <div style="width: 32px; height: 32px; border-radius: 6px; background: #ffa116; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1rem;">
+              <i class="bi bi-code-slash"></i>
+            </div>
+            <h5 class="modal-title fw-bold" id="leetcodeSyncModalLabel">LeetCode Auto-Tracker</h5>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form method="post" action="{% url 'sync_leetcode' %}">
+          {% csrf_token %}
+          <div class="modal-body p-4">
+            <p class="text-muted small mb-3">
+              Paste your official LeetCode profile URL (e.g. <code>https://leetcode.com/u/your-username/</code> or handle). Smart DSA Tracker will extract your profile data directly from LeetCode and synchronize your total solved problem counts, difficulty breakdown, and topics done so far.
+            </p>
+
+            {% if user.profile.leetcode_username %}
+              <div class="p-3 rounded mb-3" style="background: var(--bg-surface-subtle); border: 1px solid var(--border-color);">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <div class="d-flex align-items-center gap-2">
+                    {% if user.profile.leetcode_avatar_url %}
+                      <img src="{{ user.profile.leetcode_avatar_url }}" alt="@{{ user.profile.leetcode_username }}" class="rounded-circle border" style="width: 28px; height: 28px; object-fit: cover;">
+                    {% endif %}
+                    <div>
+                      <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle font-mono">@{{ user.profile.leetcode_username }}</span>
+                      {% if user.profile.leetcode_real_name %}
+                        <span class="small text-muted ms-1">({{ user.profile.leetcode_real_name }})</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                  {% if user.profile.effective_profile_url %}
+                    <a href="{{ user.profile.effective_profile_url }}" target="_blank" rel="noopener" class="small text-decoration-none d-flex align-items-center gap-1">
+                      <span>View Profile</span>
+                      <i class="bi bi-box-arrow-up-right" style="font-size: 0.75rem;"></i>
+                    </a>
+                  {% endif %}
+                </div>
+
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2 small text-muted">
+                  {% if user.profile.leetcode_ranking %}
+                    <div>Rank: <strong class="text-body">#{{ user.profile.leetcode_ranking|stringformat:",d" }}</strong></div>
+                    <span>•</span>
+                  {% endif %}
+                  <div>Total Solved: <strong class="text-primary">{{ user.profile.leetcode_solved_count }}</strong></div>
+                </div>
+
+                <div class="d-flex gap-2 small mb-2">
+                  <span class="badge bg-success-subtle text-success border">{{ user.profile.leetcode_easy_count }} Easy</span>
+                  <span class="badge bg-warning-subtle text-warning border">{{ user.profile.leetcode_medium_count }} Med</span>
+                  <span class="badge bg-danger-subtle text-danger border">{{ user.profile.leetcode_hard_count }} Hard</span>
+                </div>
+
+                {% if user.profile.leetcode_topic_stats %}
+                  <div class="pt-2 border-top">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <span class="small fw-semibold text-muted" style="font-size: 0.75rem;">SYNCED TOPICS ({{ user.profile.leetcode_topic_stats|length }})</span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-1" style="max-height: 100px; overflow-y: auto;">
+                      {% for t in user.profile.leetcode_topic_stats %}
+                        <span class="badge bg-body-secondary text-body border" style="font-size: 0.7rem; font-weight: normal;">
+                          {{ t.name }} <strong class="text-primary ms-1">{{ t.solved }}</strong>
+                        </span>
+                      {% endfor %}
+                    </div>
+                  </div>
+                {% endif %}
+              </div>
+            {% endif %}
+
+            <div class="mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label for="id_leetcode_url_input" class="form-label small fw-semibold text-muted mb-0">LeetCode Account URL</label>
+                <span class="badge bg-body-secondary text-muted border font-mono" style="font-size: 0.7rem;">Official URL or Handle</span>
+              </div>
+              <div class="input-group">
+                <span class="input-group-text bg-body-tertiary"><i class="bi bi-link-45deg"></i></span>
+                <input type="text" name="leetcode_url" id="id_leetcode_url_input" class="form-control" required placeholder="https://leetcode.com/u/your-username/ or handle" value="{{ user.profile.effective_profile_url|default:user.profile.leetcode_username }}">
+              </div>
+              <div class="form-text small text-muted">
+                Paste your full profile link (e.g. <code>https://leetcode.com/u/your-username/</code>). Ensure your profile is public.
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-top">
+            <button type="button" class="btn btn-secondary-custom btn-sm" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary-custom btn-sm d-flex align-items-center gap-2">
+              <i class="bi bi-arrow-repeat"></i>
+              <span>Sync Account & Topics</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+
+
+  <!-- Bootstrap 5.3 Bundle JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+  <!-- Theme Toggle Logic -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const toggleBtn = document.getElementById('themeToggleBtn');
+      const themeIcon = document.getElementById('themeIcon');
+
+      function updateIcon(theme) {
+        if (themeIcon) {
+          if (theme === 'dark') {
+            themeIcon.className = 'ri-sun-line text-warning fs-5';
+          } else {
+            themeIcon.className = 'ri-moon-line text-secondary fs-5';
+          }
+        }
+      }
+
+      const currentTheme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      updateIcon(currentTheme);
+
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+          const theme = document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-bs-theme', theme);
+          localStorage.setItem('smart-dsa-theme', theme);
+          updateIcon(theme);
+          // Dispatch custom event for charts to adapt colors
+          window.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme } }));
+        });
+      }
+
+      // Initialize Lucide Icons
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+    });
+  </script>
+
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

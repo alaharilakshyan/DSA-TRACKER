@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+
+{% block title %}{{ problem.title }} — Smart DSA Tracker{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb small">
+    <li class="breadcrumb-item"><a href="{% url 'problem_list' %}" class="text-decoration-none text-muted">Problems</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'problem_list' %}?topic={{ problem.topic.slug }}" class="text-decoration-none text-muted">{{ problem.topic.name }}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{ problem.title }}</li>
+  </ol>
+</nav>
+
+<!-- Problem Header Card -->
+<div class="card card-custom p-4 mb-4">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+    <div>
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+        <span class="{{ problem.difficulty_badge_class }}">
+          {{ problem.get_difficulty_display }}
+        </span>
+        <span class="badge bg-body-secondary text-body border">
+          {{ problem.topic.name }}
+        </span>
+        <span class="badge-pattern">
+          <i class="bi bi-diagram-2 me-1"></i>{{ problem.get_pattern_display }}
+        </span>
+        {% if problem.supporting_concepts_list %}
+          {% for concept in problem.supporting_concepts_list %}
+            <span class="badge bg-body-tertiary text-body-secondary border" title="Supporting Concept">
+              + {{ concept }}
+            </span>
+          {% endfor %}
+        {% endif %}
+        {% if problem.is_mastered %}
+          <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">
+            <i class="bi bi-star-fill me-1"></i>Mastered
+          </span>
+        {% endif %}
+      </div>
+      <h2 class="fw-bold mb-1 d-flex align-items-center gap-2">
+        <span>{{ problem.title }}</span>
+        {% if problem.link %}
+          <a href="{{ problem.link }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary border-0 p-1 text-primary" title="Open external link">
+            <i class="bi bi-box-arrow-up-right fs-6"></i>
+          </a>
+        {% endif %}
+      </h2>
+      <div class="text-muted small">
+        Added on {{ problem.created_at|date:"F j, Y" }} • {{ problem.attempts.count }} attempt{{ problem.attempts.count|pluralize }} logged
+      </div>
+    </div>
+
+    <!-- Header Actions -->
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      <!-- Toggle Mastery Form -->
+      <form method="post" action="{% url 'toggle_mastery' problem.id %}" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-secondary-custom btn-sm d-flex align-items-center gap-1">
+          {% if problem.is_mastered %}
+            <i class="bi bi-star-fill text-warning"></i>
+            <span>Mastered</span>
+          {% else %}
+            <i class="bi bi-star text-muted"></i>
+            <span>Mark Mastered</span>
+          {% endif %}
+        </button>
+      </form>
+
+      <a href="{% url 'problem_update' problem.id %}" class="btn btn-secondary-custom btn-sm d-flex align-items-center gap-1">
+        <i class="bi bi-pencil"></i>
+        <span>Edit</span>
+      </a>
+
+      <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal">
+        <i class="bi bi-trash3"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Left Column: Notes & Attempt History -->
+  <div class="col-lg-8">
+    <!-- Approach Notes & Intuition Card -->
+    <div class="card card-custom mb-4">
+      <div class="card-header-custom">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-lightbulb text-warning"></i>
+          <span>Intuition & Approach Notes</span>
+        </div>
+        <a href="{% url 'problem_update' problem.id %}" class="btn btn-sm btn-link text-decoration-none p-0 small">Edit Notes</a>
+      </div>
+      <div class="card-body p-4">
+        {% if problem.notes %}
+          <div class="text-body" style="white-space: pre-wrap; line-height: 1.6; font-size: 0.95rem;">{{ problem.notes }}</div>
+        {% else %}
+          <div class="text-center py-4 text-muted small">
+            <i class="bi bi-pencil-square fs-3 d-block mb-2 opacity-50"></i>
+            No approach notes recorded yet. Add complexity notes, common pitfalls, or pseudo-code to reinforce learning!
+            <div class="mt-2">
+              <a href="{% url 'problem_update' problem.id %}" class="btn btn-secondary-custom btn-sm">Add Notes</a>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Attempts History Card -->
+    <div class="card card-custom">
+      <div class="card-header-custom">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-clock-history text-primary"></i>
+          <span>Attempt History ({{ attempts.count }})</span>
+        </div>
+        <button type="button" class="btn btn-primary-custom btn-sm" data-bs-toggle="modal" data-bs-target="#logAttemptModal">
+          <i class="bi bi-plus-lg me-1"></i>Log Attempt
+        </button>
+      </div>
+      <div class="card-body p-0">
+        {% if attempts %}
+          <div class="table-responsive">
+            <table class="table table-custom">
+              <thead>
+                <tr>
+                  <th>Date & Time</th>
+                  <th>Outcome</th>
+                  <th>Duration</th>
+                  <th>Approach Reflections</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for a in attempts %}
+                  <tr>
+                    <td class="text-nowrap small text-muted">
+                      {{ a.solved_at|date:"M j, Y • H:i" }}
+                    </td>
+                    <td>
+                      {% if a.was_successful %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">
+                          <i class="bi bi-check-lg me-1"></i>Success
+                        </span>
+                      {% else %}
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill">
+                          <i class="bi bi-x-lg me-1"></i>Failed
+                        </span>
+                      {% endif %}
+                    </td>
+                    <td class="fw-semibold font-mono">
+                      {{ a.time_taken_minutes }} min{{ a.time_taken_minutes|pluralize }}
+                    </td>
+                    <td class="small text-muted" style="max-width: 320px;">
+                      {{ a.approach_notes|default:"—" }}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="text-center py-5 text-muted small">
+            <i class="bi bi-stopwatch fs-3 d-block mb-2 opacity-50"></i>
+            No practice attempts recorded yet.
+            <div class="mt-2">
+              <button type="button" class="btn btn-primary-custom btn-sm" data-bs-toggle="modal" data-bs-target="#logAttemptModal">
+                Log Your First Attempt
+              </button>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column: SM-2 Spaced Repetition Engine Status & Quick Log -->
+  <div class="col-lg-4">
+    <!-- Spaced Repetition Schedule Card -->
+    <div class="card card-custom mb-4">
+      <div class="card-header-custom">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-arrow-repeat text-info"></i>
+          <span>SM-2 Spaced Repetition</span>
+        </div>
+      </div>
+      <div class="card-body p-4">
+        {% if problem.revision %}
+          <div class="d-flex align-items-center justify-content-between p-3 rounded mb-3" style="background-color: var(--bg-surface-subtle); border: 1px solid var(--border-color);">
+            <div>
+              <div class="text-muted small">Next Scheduled Review</div>
+              <div class="fw-bold fs-5 text-body">{{ problem.revision.next_review_date|date:"F j, Y" }}</div>
+            </div>
+            {% if problem.revision.is_due_today %}
+              <span class="badge bg-danger text-white rounded-pill px-3 py-2 animate__animated animate__pulse">
+                Due Today!
+              </span>
+            {% else %}
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1">
+                in {{ problem.revision.interval_days }} day{{ problem.revision.interval_days|pluralize }}
+              </span>
+            {% endif %}
+          </div>
+
+          <div class="row g-2 text-center mb-3">
+            <div class="col-4">
+              <div class="p-2 rounded border" style="background: var(--bg-surface);">
+                <div class="text-muted small">Interval</div>
+                <div class="fw-bold font-mono">{{ problem.revision.interval_days }}d</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="p-2 rounded border" style="background: var(--bg-surface);">
+                <div class="text-muted small">Reps</div>
+                <div class="fw-bold font-mono">{{ problem.revision.repetitions }}</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="p-2 rounded border" style="background: var(--bg-surface);">
+                <div class="text-muted small">Ease Factor</div>
+                <div class="fw-bold font-mono">{{ problem.revision.ease_factor|floatformat:2 }}</div>
+              </div>
+            </div>
+          </div>
+
+          <a href="{% url 'submit_revision' problem.id %}" class="btn btn-primary-custom w-100 py-2 d-flex align-items-center justify-content-center gap-2">
+            <i class="bi bi-arrow-repeat"></i>
+            <span>Revise / Rate Recall</span>
+          </a>
+        {% else %}
+          <p class="text-muted small mb-0">No active revision schedule.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Quick Log Attempt Card -->
+    <div class="card card-custom">
+      <div class="card-header-custom">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-stopwatch text-success"></i>
+          <span>Quick Log Attempt</span>
+        </div>
+      </div>
+      <div class="card-body p-4">
+        <form method="post" action="{% url 'log_attempt' problem.id %}">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label for="time_taken_minutes" class="form-label small fw-semibold text-muted">Time Taken (minutes) *</label>
+            <div class="input-group input-group-sm">
+              <input type="number" name="time_taken_minutes" id="time_taken_minutes" class="form-control font-mono" min="1" max="600" required placeholder="e.g. 25">
+              <span class="input-group-text">mins</span>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <div class="form-check">
+              <input type="checkbox" name="was_successful" id="was_successful_quick" class="form-check-input" checked>
+              <label class="form-check-label small fw-semibold text-body" for="was_successful_quick">
+                Solved Successfully
+              </label>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="approach_notes" class="form-label small fw-semibold text-muted">Notes / Reflections</label>
+            <textarea name="approach_notes" id="approach_notes" rows="2" class="form-control form-control-sm" placeholder="Any edge case surprises or optimizations?"></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-secondary-custom btn-sm w-100 py-2 d-flex align-items-center justify-content-center gap-1">
+            <i class="bi bi-plus-circle"></i>
+            <span>Record Attempt</span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Log Attempt -->
+<div class="modal fade" id="logAttemptModal" tabindex="-1" aria-labelledby="logAttemptModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-color);">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold" id="logAttemptModalLabel">Log Practice Attempt</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" action="{% url 'log_attempt' problem.id %}">
+        {% csrf_token %}
+        <div class="modal-body p-4">
+          <div class="mb-3">
+            <label for="{{ attempt_form.time_taken_minutes.id_for_label }}" class="form-label fw-semibold small text-muted">Time Taken (minutes) *</label>
+            {{ attempt_form.time_taken_minutes }}
+          </div>
+          <div class="mb-3">
+            <div class="form-check">
+              {{ attempt_form.was_successful }}
+              <label class="form-check-label fw-semibold small text-body" for="{{ attempt_form.was_successful.id_for_label }}">
+                Successful Solution
+              </label>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="{{ attempt_form.approach_notes.id_for_label }}" class="form-label fw-semibold small text-muted">Approach & Mistakes Note</label>
+            {{ attempt_form.approach_notes }}
+          </div>
+        </div>
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-secondary-custom btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary-custom btn-sm">Save Attempt</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Delete Confirmation -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-color);">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold text-danger" id="deleteModalLabel">Delete Problem</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body py-4">
+        Are you sure you want to permanently delete <strong>{{ problem.title }}</strong>? All attempt logs and SM-2 revision history will be permanently erased.
+      </div>
+      <div class="modal-footer border-top">
+        <button type="button" class="btn btn-secondary-custom btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <form method="post" action="{% url 'problem_delete' problem.id %}" class="d-inline">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger btn-sm">Confirm Delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

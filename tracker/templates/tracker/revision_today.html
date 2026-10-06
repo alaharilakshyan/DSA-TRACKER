@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block title %}Today's Revision Queue — Smart DSA Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9 col-xl-8">
+
+    {% if is_submitting_single and revision %}
+      <!-- Breadcrumb -->
+      <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb small">
+          <li class="breadcrumb-item"><a href="{% url 'revision_today' %}" class="text-decoration-none text-muted">Revision Queue</a></li>
+          <li class="breadcrumb-item active" aria-current="page">{{ revision.problem.title }}</li>
+        </ol>
+      </nav>
+
+      <!-- Active Flashcard Revision Session -->
+      <div class="card card-custom p-4 p-md-5 mb-4 shadow">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pb-3 mb-4 border-bottom">
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="{{ revision.problem.difficulty_badge_class }}">{{ revision.problem.get_difficulty_display }}</span>
+              <span class="badge bg-body-secondary text-body border">{{ revision.problem.topic.name }}</span>
+              <span class="badge-pattern">{{ revision.problem.get_pattern_display }}</span>
+            </div>
+            <h3 class="fw-bold mb-0 text-body">{{ revision.problem.title }}</h3>
+          </div>
+          {% if revision.problem.link %}
+            <a href="{{ revision.problem.link }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary-custom btn-sm d-flex align-items-center gap-1">
+              <i class="bi bi-box-arrow-up-right"></i>
+              <span>Open on LeetCode</span>
+            </a>
+          {% endif %}
+        </div>
+
+        <!-- Recall Prompt -->
+        <div class="p-4 rounded mb-4" style="background: var(--bg-surface-subtle); border: 1px solid var(--border-color);">
+          <h6 class="fw-bold text-muted text-uppercase small mb-2" style="letter-spacing: 0.05em;">
+            <i class="bi bi-patch-question me-1 text-primary"></i>Active Recall Prompt
+          </h6>
+          <p class="mb-0 text-body" style="font-size: 1.05rem; line-height: 1.6;">
+            Before revealing your notes, mentally outline: <strong>What data structure, algorithmic pattern, and optimal time/space complexity solve this problem?</strong>
+          </p>
+        </div>
+
+        <!-- Reveal Notes Accordion -->
+        <div class="accordion mb-4" id="notesAccordion">
+          <div class="accordion-item" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed py-2 px-3 fw-semibold small" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNotes" aria-expanded="false" aria-controls="collapseNotes" style="background: var(--bg-surface);">
+                <i class="bi bi-eye me-2 text-primary"></i>Click to Reveal Your Approach Notes & Key Intuition
+              </button>
+            </h2>
+            <div id="collapseNotes" class="accordion-collapse collapse" data-bs-parent="#notesAccordion">
+              <div class="accordion-body text-body p-4" style="white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6; border-top: 1px solid var(--border-color);">
+                {% if revision.problem.notes %}
+                  {{ revision.problem.notes }}
+                {% else %}
+                  <span class="text-muted italic">No notes were saved for this problem.</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SM-2 Quality Rating Form -->
+        <form method="post" action="{% url 'submit_revision' revision.problem.id %}">
+          {% csrf_token %}
+          <div class="mb-4">
+            <label class="form-label fw-bold text-body mb-2 d-block">
+              How accurately and quickly did you recall the optimal approach?
+            </label>
+            <p class="text-muted small mb-3">
+              The SuperMemo-2 (SM-2) algorithm will calculate your next optimal revision date based on this recall rating.
+            </p>
+
+            <div class="d-flex flex-column gap-2">
+              <label class="quality-rating-option">
+                <input class="form-check-input" type="radio" name="quality" id="q5" value="5" checked>
+                <div>
+                  <div class="fw-semibold text-success">5 — Perfect Recall</div>
+                  <div class="text-muted small">Instant recall with optimal time/space complexity and crystal-clear intuition.</div>
+                </div>
+              </label>
+
+              <label class="quality-rating-option">
+                <input class="form-check-input" type="radio" name="quality" id="q4" value="4">
+                <div>
+                  <div class="fw-semibold text-primary">4 — Good Recall</div>
+                  <div class="text-muted small">Correct approach after a slight hesitation, minor syntax uncertainty.</div>
+                </div>
+              </label>
+
+              <label class="quality-rating-option">
+                <input class="form-check-input" type="radio" name="quality" id="q3" value="3">
+                <div>
+                  <div class="fw-semibold text-warning">3 — Pass with Difficulty</div>
+                  <div class="text-muted small">Recalled the solution, but struggled significantly with edge cases or details.</div>
+                </div>
+              </label>
+
+              <label class="quality-rating-option">
+                <input class="form-check-input" type="radio" name="quality" id="q2" value="2">
+                <div>
+                  <div class="fw-semibold text-danger">2 — Incorrect / Flawed</div>
+                  <div class="text-muted small">Wrong approach or heavy struggle; recognized correct idea only after checking notes.</div>
+                </div>
+              </label>
+
+              <label class="quality-rating-option">
+                <input class="form-check-input" type="radio" name="quality" id="q1" value="1">
+                <div>
+                  <div class="fw-semibold text-danger">1 — Forgot</div>
+                  <div class="text-muted small">Couldn't remember the optimal pattern, but notes feel familiar.</div>
+                </div>
+              </label>
+
+              <label class="quality-rating-option">
+                <input class="form-check-input" type="radio" name="quality" id="q0" value="0">
+                <div>
+                  <div class="fw-semibold text-danger">0 — Complete Blackout</div>
+                  <div class="text-muted small">Complete memory lapse. Schedule will reset to tomorrow.</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+            <a href="{% url 'revision_today' %}" class="btn btn-secondary-custom">Back to Queue</a>
+            <button type="submit" class="btn btn-primary-custom d-flex align-items-center gap-2">
+              <i class="bi bi-check2-circle"></i>
+              <span>Update Schedule & Continue</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+    {% else %}
+      <!-- General Queue View -->
+      <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4">
+        <div>
+          <h2 class="fw-bold mb-1">Today's Spaced Repetition Queue</h2>
+          <p class="text-muted small mb-0">
+            Problems scheduled for review today using the SM-2 algorithm to ensure long-term retention
+          </p>
+        </div>
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill fw-semibold">
+          {{ revisions.count }} Due for Review
+        </span>
+      </div>
+
+      {% if revisions %}
+        <div class="d-flex flex-column gap-3 mb-4">
+          {% for rev in revisions %}
+            <div class="card card-custom card-custom-hover p-4">
+              <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div>
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="{{ rev.problem.difficulty_badge_class }}">{{ rev.problem.get_difficulty_display }}</span>
+                    <span class="badge bg-body-secondary text-body border">{{ rev.problem.topic.name }}</span>
+                    <span class="badge-pattern">{{ rev.problem.get_pattern_display }}</span>
+                    {% if rev.problem.is_mastered %}
+                      <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">⭐ Mastered</span>
+                    {% endif %}
+                  </div>
+                  <h5 class="fw-bold mb-1">
+                    <a href="{% url 'submit_revision' rev.problem.id %}" class="text-body text-decoration-none">
+                      {{ rev.problem.title }}
+                    </a>
+                  </h5>
+                  <div class="text-muted small">
+                    Last interval: <strong>{{ rev.interval_days }}d</strong> • Repetitions: <strong>{{ rev.repetitions }}</strong> • Ease: <strong>{{ rev.ease_factor|floatformat:2 }}</strong>
+                  </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                  {% if rev.problem.link %}
+                    <a href="{{ rev.problem.link }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary-custom btn-sm" title="View Problem Source">
+                      <i class="bi bi-box-arrow-up-right"></i>
+                    </a>
+                  {% endif %}
+                  <a href="{% url 'submit_revision' rev.problem.id %}" class="btn btn-primary-custom btn-sm d-flex align-items-center gap-2">
+                    <i class="bi bi-arrow-repeat"></i>
+                    <span>Review Now</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <!-- All Caught Up Empty State -->
+        <div class="card card-custom p-5 text-center my-4">
+          <div class="mx-auto mb-3" style="width: 64px; height: 64px; border-radius: 50%; background: var(--easy-bg); border: 1px solid var(--easy-border); display: flex; align-items: center; justify-content: center;">
+            <i class="bi bi-check2-circle text-success fs-1"></i>
+          </div>
+          <h4 class="fw-bold mb-2">You're All Caught Up for Today!</h4>
+          <p class="text-muted small mb-4" style="max-width: 440px; margin: 0 auto;">
+            Zero problems are currently overdue for spaced repetition review. Consistent daily recall is the secret to retaining DSA patterns.
+          </p>
+          <div class="d-flex justify-content-center gap-2">
+            <a href="{% url 'problem_list' %}" class="btn btn-secondary-custom btn-sm">
+              <i class="bi bi-collection me-1"></i>Browse Problem Bank
+            </a>
+            <a href="{% url 'problem_create' %}" class="btn btn-primary-custom btn-sm">
+              <i class="bi bi-plus-lg me-1"></i>Add New Problem
+            </a>
+          </div>
+        </div>
+      {% endif %}
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

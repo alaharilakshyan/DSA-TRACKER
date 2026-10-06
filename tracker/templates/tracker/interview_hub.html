@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Technical Interview Simulator — Smart DSA Tracker{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="badge bg-danger-subtle text-danger border border-danger-subtle font-mono small">
+        <i class="bi bi-mic-fill me-1"></i>Mock Interview Environment
+      </span>
+      <span class="text-muted small">•</span>
+      <span class="text-muted small">History-Aware Algorithmic Testing</span>
+    </div>
+    <h2 class="fw-bold mb-1">Technical Interview Simulator</h2>
+    <p class="text-muted small mb-0">
+      Simulate timed technical interviews targeting your specific weak and forgotten DSA patterns.
+    </p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <button type="button" class="btn btn-primary-custom btn-sm d-flex align-items-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#newInterviewModal">
+      <i class="bi bi-play-fill fs-6"></i>
+      <span class="fw-bold">Start Interview Simulation</span>
+    </button>
+  </div>
+</div>
+
+<!-- Performance Overview KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card" style="--kpi-accent: #6366f1; --kpi-bg: rgba(99, 102, 241, 0.12);">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="kpi-label">Completed Mocks</span>
+        <div class="kpi-icon" style="color: #6366f1;"><i class="bi bi-person-video3"></i></div>
+      </div>
+      <div class="kpi-value">{{ completed_count }}</div>
+      <div class="text-muted small mt-1">Timed interview sessions</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card" style="--kpi-accent: #10b981; --kpi-bg: rgba(16, 185, 129, 0.12);">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="kpi-label">Average Score</span>
+        <div class="kpi-icon" style="color: #10b981;"><i class="bi bi-trophy-fill"></i></div>
+      </div>
+      <div class="kpi-value text-success">{{ avg_score }}%</div>
+      <div class="text-muted small mt-1">Across all simulations</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card" style="--kpi-accent: #f59e0b; --kpi-bg: rgba(245, 158, 11, 0.12);">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="kpi-label">Simulator Mode</span>
+        <div class="kpi-icon" style="color: #f59e0b;"><i class="bi bi-bullseye"></i></div>
+      </div>
+      <div class="kpi-value fs-5">History-Aware</div>
+      <div class="text-muted small mt-1">Targets weak & decayed areas</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card" style="--kpi-accent: #ef4444; --kpi-bg: rgba(239, 68, 68, 0.12);">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="kpi-label">SM-2 Integration</span>
+        <div class="kpi-icon" style="color: #ef4444;"><i class="bi bi-arrow-repeat"></i></div>
+      </div>
+      <div class="kpi-value fs-5 text-danger">Active</div>
+      <div class="text-muted small mt-1">Missed patterns scheduled next day</div>
+    </div>
+  </div>
+</div>
+
+<!-- Session History Table -->
+<div class="card card-custom mb-4">
+  <div class="card-header-custom d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-clock-history text-primary"></i>
+      <span>Interview Simulation History</span>
+    </div>
+    <span class="badge bg-body-secondary text-muted border font-mono small">{{ sessions|length }} Total</span>
+  </div>
+
+  <div class="card-body p-0">
+    {% if sessions %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="color: var(--text-main);">
+          <thead style="background: var(--bg-surface-subtle); border-bottom: 1px solid var(--border-color);">
+            <tr class="small text-muted text-uppercase">
+              <th class="ps-4 py-3">Session Date</th>
+              <th class="py-3">Target Track</th>
+              <th class="py-3">Difficulty</th>
+              <th class="py-3">Duration</th>
+              <th class="py-3">Status / Score</th>
+              <th class="pe-4 py-3 text-end">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in sessions %}
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td class="ps-4 py-3">
+                  <div class="fw-semibold">{{ s.started_at|date:"M d, Y" }}</div>
+                  <div class="text-muted small font-mono">{{ s.started_at|date:"H:i" }} UTC</div>
+                </td>
+                <td class="py-3">
+                  <span class="badge bg-body-secondary text-body border font-mono">
+                    {{ s.track }}
+                  </span>
+                </td>
+                <td class="py-3">
+                  <span class="badge {% if s.difficulty == 'EASY' %}badge-difficulty-easy{% elif s.difficulty == 'HARD' %}badge-difficulty-hard{% else %}badge-difficulty-medium{% endif %}">
+                    {{ s.difficulty }}
+                  </span>
+                </td>
+                <td class="py-3 small text-muted font-mono">
+                  {{ s.duration_minutes }} mins
+                </td>
+                <td class="py-3">
+                  {% if s.is_completed %}
+                    <span class="badge {% if s.score >= 75 %}bg-success-subtle text-success border border-success-subtle{% elif s.score >= 50 %}bg-warning-subtle text-warning border border-warning-subtle{% else %}bg-danger-subtle text-danger border border-danger-subtle{% endif %} font-mono">
+                      {{ s.score }}% Score
+                    </span>
+                  {% else %}
+                    <span class="badge bg-secondary-subtle text-secondary border">In Progress</span>
+                  {% endif %}
+                </td>
+                <td class="pe-4 py-3 text-end">
+                  {% if s.is_completed %}
+                    <a href="{% url 'interview_report' s.id %}" class="btn btn-outline-primary btn-sm py-1 px-3">
+                      View Report &rarr;
+                    </a>
+                  {% else %}
+                    <a href="{% url 'interview_console' s.id %}" class="btn btn-primary-custom btn-sm py-1 px-3">
+                      Resume &rarr;
+                    </a>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center py-5">
+        <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(99, 102, 241, 0.1); color: #6366f1; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; margin: 0 auto 1rem;">
+          <i class="bi bi-mic"></i>
+        </div>
+        <h5 class="fw-bold mb-2">No Interview Simulations Yet</h5>
+        <p class="text-muted small mb-3" style="max-width: 420px; margin: 0 auto;">
+          Ready to put your algorithmic skills to the test? Start your first timed technical mock interview.
+        </p>
+        <button type="button" class="btn btn-primary-custom btn-sm px-3" data-bs-toggle="modal" data-bs-target="#newInterviewModal">
+          <i class="bi bi-play-fill me-1"></i>Start Simulation
+        </button>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Modal: New Interview Configuration -->
+<div class="modal fade" id="newInterviewModal" tabindex="-1" aria-labelledby="newInterviewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-color);">
+      <div class="modal-header border-bottom">
+        <div class="d-flex align-items-center gap-2">
+          <div style="width: 32px; height: 32px; border-radius: 6px; background: #ef4444; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1rem;">
+            <i class="bi bi-play-fill"></i>
+          </div>
+          <h5 class="modal-title fw-bold" id="newInterviewModalLabel">Configure Technical Interview</h5>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" action="{% url 'interview_start' %}">
+        {% csrf_token %}
+        <div class="modal-body p-4">
+          <p class="text-muted small mb-3">
+            The simulator selects questions based on your algorithmic skill graph, prioritizing patterns that are weak or have not been practiced recently.
+          </p>
+
+          <!-- Track -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-muted">Target Track</label>
+            <select name="track" class="form-select">
+              <option value="GENERAL" selected>General Software Engineer (SDE)</option>
+              <option value="PRODUCT">Tier-1 Product / FAANG</option>
+              <option value="BACKEND">Backend & Distributed Systems</option>
+              <option value="FRONTEND">Frontend Engineering</option>
+            </select>
+          </div>
+
+          <!-- Difficulty -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-muted">Interview Difficulty</label>
+            <select name="difficulty" class="form-select">
+              <option value="MEDIUM" selected>Medium (Standard Interview Bar)</option>
+              <option value="EASY">Easy (Screening / Junior Level)</option>
+              <option value="HARD">Hard (Senior / FAANG Onsite)</option>
+              <option value="MIXED">Mixed / Adaptive Progression</option>
+            </select>
+          </div>
+
+          <!-- Duration -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-muted">Interview Duration</label>
+            <div class="d-flex gap-3">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="duration" id="dur30" value="30">
+                <label class="form-check-label small" for="dur30">30 min (1-2 Qs)</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="duration" id="dur45" value="45" checked>
+                <label class="form-check-label small" for="dur45">45 min (2 Qs)</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="duration" id="dur60" value="60">
+                <label class="form-check-label small" for="dur60">60 min (3 Qs)</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-secondary-custom btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary-custom btn-sm d-flex align-items-center gap-2">
+            <i class="bi bi-lightning-charge-fill"></i>
+            <span>Begin Simulation</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

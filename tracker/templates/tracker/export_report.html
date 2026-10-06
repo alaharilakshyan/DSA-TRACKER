@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}Interview Readiness Dossier — Smart DSA Tracker{% endblock %}
+
+{% block extra_head %}
+<style>
+@media print {
+  .navbar-custom, .footer-custom, .no-print, .theme-toggle-btn {
+    display: none !important;
+  }
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt;
+  }
+  .card-custom {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+    break-inside: avoid;
+  }
+  .table-custom th {
+    background-color: #f1f5f9 !important;
+    color: #000 !important;
+  }
+  .print-page-break {
+    page-break-before: always;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Top Action Toolbar -->
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4 no-print">
+  <div>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb small mb-1">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-decoration-none text-muted">Dashboard</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Readiness Dossier</li>
+      </ol>
+    </nav>
+    <h3 class="fw-bold mb-0">DSA Interview Readiness Dossier</h3>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <a href="{% url 'export_markdown' %}" class="btn btn-secondary-custom btn-sm d-flex align-items-center gap-2">
+      <i class="bi bi-file-earmark-arrow-down"></i>
+      <span>Download Markdown</span>
+    </a>
+    <button onclick="window.print()" class="btn btn-primary-custom btn-sm d-flex align-items-center gap-2 shadow-sm">
+      <i class="bi bi-printer-fill"></i>
+      <span>Print / Save PDF</span>
+    </button>
+  </div>
+</div>
+
+<!-- Main Dossier Document Container -->
+<div class="card card-custom p-4 p-md-5 mb-5">
+  <!-- Report Header -->
+  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start border-bottom pb-4 mb-4 gap-3">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <div class="brand-icon" style="width: 28px; height: 28px; font-size: 0.85rem;">
+          <i class="bi bi-cpu-fill"></i>
+        </div>
+        <span class="fw-bold text-primary" style="font-size: 1.1rem; letter-spacing: -0.02em;">Smart DSA Tracker</span>
+      </div>
+      <h2 class="fw-bold mb-1 text-body">Technical Interview Readiness Dossier</h2>
+      <p class="text-muted small mb-0">Candidate Portfolio, Mastery Velocity & Algorithmic Retention Audit</p>
+    </div>
+    <div class="text-sm-end text-muted small">
+      <div><strong>Candidate:</strong> {{ user.username }}</div>
+      <div><strong>Generated:</strong> {{ generated_at|date:"F j, Y • H:i e" }}</div>
+      <div><strong>Spaced Repetition:</strong> Active (SM-2)</div>
+    </div>
+  </div>
+
+  <!-- Executive Summary KPIs -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="p-3 rounded border text-center" style="background: var(--bg-surface-subtle);">
+        <div class="text-muted small text-uppercase fw-semibold">Total Problems</div>
+        <div class="fs-3 fw-bold text-body">{{ kpis.total_problems }}</div>
+        <div class="small text-muted">Interview Solved</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="p-3 rounded border text-center" style="background: var(--bg-surface-subtle);">
+        <div class="text-muted small text-uppercase fw-semibold">Mastery Rate</div>
+        <div class="fs-3 fw-bold text-success">{{ kpis.mastery_rate }}%</div>
+        <div class="small text-muted">{{ kpis.mastered_problems }} Mastered ⭐</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="p-3 rounded border text-center" style="background: var(--bg-surface-subtle);">
+        <div class="text-muted small text-uppercase fw-semibold">Practice Time</div>
+        <div class="fs-3 fw-bold text-body">{{ kpis.total_time_minutes }}m</div>
+        <div class="small text-muted">{{ kpis.total_attempts }} Practice Attempts</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="p-3 rounded border text-center" style="background: var(--bg-surface-subtle);">
+        <div class="text-muted small text-uppercase fw-semibold">Retention Health</div>
+        <div class="fs-3 fw-bold {% if kpis.revisions_due_today > 0 %}text-danger{% else %}text-success{% endif %}">
+          {% if kpis.revisions_due_today == 0 %}100%{% else %}{{ kpis.revisions_due_today }} Due{% endif %}
+        </div>
+        <div class="small text-muted">Daily Spaced Queue</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Topic Breakdown Table -->
+  <div class="mb-5">
+    <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+      <i class="bi bi-pie-chart-fill text-primary"></i>
+      <span>Topic Mastery & Coverage</span>
+    </h5>
+    <div class="table-responsive">
+      <table class="table table-custom table-bordered">
+        <thead>
+          <tr>
+            <th>Topic Category</th>
+            <th class="text-center">Total Solved</th>
+            <th class="text-center">Mastered ⭐</th>
+            <th style="width: 45%;">Mastery Progress</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for tp in topic_progress %}
+            <tr>
+              <td class="fw-semibold">{{ tp.topic__name }}</td>
+              <td class="text-center font-mono">{{ tp.total }}</td>
+              <td class="text-center font-mono text-success fw-bold">{{ tp.mastered }}</td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="progress flex-grow-1" style="height: 8px;">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: {% widthratio tp.mastered tp.total 100 %}%;" aria-valuenow="{% widthratio tp.mastered tp.total 100 %}" aria-valuemin="0" aria-valuemax="100"></div>
+                  </div>
+                  <span class="small font-mono text-muted" style="min-width: 40px;">{% widthratio tp.mastered tp.total 100 %}%</span>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4" class="text-center py-3 text-muted">No topic activity recorded yet.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Mastered Problems & High-Retention Insights -->
+  <div class="mb-5">
+    <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+      <i class="bi bi-star-fill text-warning"></i>
+      <span>Mastered Problems & Solution Intuition ({{ mastered_problems.count }})</span>
+    </h5>
+    {% if mastered_problems %}
+      <div class="d-flex flex-column gap-3">
+        {% for p in mastered_problems %}
+          <div class="p-3 rounded border" style="background: var(--bg-surface);">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div class="d-flex align-items-center gap-2">
+                <span class="{{ p.difficulty_badge_class }}">{{ p.get_difficulty_display }}</span>
+                <span class="badge bg-body-secondary text-body border">{{ p.topic.name }}</span>
+                <span class="badge-pattern">{{ p.get_pattern_display }}</span>
+                <span class="fw-bold fs-6 ms-1">{{ p.title }}</span>
+              </div>
+              <span class="badge bg-success-subtle text-success border border-success-subtle">
+                <i class="bi bi-check2-circle me-1"></i>Mastered
+              </span>
+            </div>
+            {% if p.notes %}
+              <div class="small p-2 rounded border font-mono" style="background: var(--bg-surface-subtle); white-space: pre-wrap; line-height: 1.5;">{{ p.notes }}</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-muted small">No problems marked as mastered yet.</p>
+    {% endif %}
+  </div>
+
+  <!-- In-Progress Practice Queue -->
+  <div class="mb-4">
+    <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+      <i class="bi bi-hourglass-split text-info"></i>
+      <span>Active Practice Queue ({{ in_progress_problems.count }})</span>
+    </h5>
+    <div class="table-responsive">
+      <table class="table table-custom table-sm">
+        <thead>
+          <tr>
+            <th>Problem</th>
+            <th>Topic</th>
+            <th>Pattern</th>
+            <th>Difficulty</th>
+            <th>Next SM-2 Review</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in in_progress_problems %}
+            <tr>
+              <td class="fw-semibold">{{ p.title }}</td>
+              <td><span class="badge bg-body-secondary text-body border">{{ p.topic.name }}</span></td>
+              <td><span class="badge-pattern">{{ p.get_pattern_display }}</span></td>
+              <td><span class="{{ p.difficulty_badge_class }}">{{ p.get_difficulty_display }}</span></td>
+              <td class="small text-muted">
+                {% if p.revision %}
+                  {{ p.revision.next_review_date|date:"M j, Y" }} (in {{ p.revision.interval_days }}d)
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" class="text-center py-3 text-muted">All current problems are mastered!</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Report Sign-off / Verification Footer -->
+  <div class="border-top pt-3 mt-4 text-center text-muted small">
+    Smart DSA Tracker & Spaced Repetition Engine • Generated for technical interview validation & progress tracking.
+  </div>
+</div>
+{% endblock %}

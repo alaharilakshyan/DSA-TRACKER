@@ -1,0 +1,447 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dashboard — Smart DSA Tracker{% endblock %}
+
+{% block content %}
+<!-- Welcome & Quick Action Header -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <h2 class="fw-bold mb-1">DSA Performance Dashboard</h2>
+    <p class="text-muted small mb-0">
+      Track problem-solving velocity, retention metrics, and algorithmic weak spots.
+    </p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <a href="{% url 'interview_hub' %}" class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1 shadow-sm">
+      <i class="bi bi-mic-fill"></i>
+      <span>Mock Interview</span>
+    </a>
+    <a href="{% url 'export_report' %}" class="btn btn-secondary-custom btn-sm d-flex align-items-center gap-1" title="Generate printable interview dossier">
+      <i class="bi bi-file-earmark-pdf"></i>
+      <span>Export Dossier</span>
+    </a>
+    {% if kpis.revisions_due_today > 0 %}
+      <a href="{% url 'revision_today' %}" class="btn btn-outline-danger btn-sm d-flex align-items-center gap-2">
+        <i class="bi bi-alarm-fill"></i>
+        <span>{{ kpis.revisions_due_today }} Revision{{ kpis.revisions_due_today|pluralize }} Due</span>
+      </a>
+    {% endif %}
+    <a href="{% url 'problem_create' %}" class="btn btn-primary-custom btn-sm d-flex align-items-center gap-2">
+      <i class="bi bi-plus-lg"></i>
+      <span>Add Problem</span>
+    </a>
+  </div>
+</div>
+
+<!-- LeetCode Auto-Sync Banner Widget -->
+<div class="card card-custom p-3 mb-4" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(99, 102, 241, 0.05) 100%); border-left: 4px solid #f59e0b;">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+    <div class="d-flex align-items-center gap-3">
+      {% if user_profile.leetcode_avatar_url %}
+        <img src="{{ user_profile.leetcode_avatar_url }}" alt="@{{ user_profile.leetcode_username }}" class="rounded-circle border border-warning" style="width: 44px; height: 44px; object-fit: cover; flex-shrink: 0;">
+      {% else %}
+        <div style="width: 44px; height: 44px; border-radius: var(--radius-sm); background: #ffa116; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.25rem; flex-shrink: 0;">
+          <i class="bi bi-code-slash"></i>
+        </div>
+      {% endif %}
+      <div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          <span class="fw-bold fs-6">LeetCode Auto-Tracker</span>
+          {% if user_profile.leetcode_username %}
+            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle font-mono small">@{{ user_profile.leetcode_username }}</span>
+            {% if user_profile.effective_profile_url %}
+              <a href="{{ user_profile.effective_profile_url }}" target="_blank" rel="noopener" class="small text-decoration-none text-muted" title="Open official LeetCode profile">
+                <i class="bi bi-box-arrow-up-right"></i>
+              </a>
+            {% endif %}
+            {% if user_profile.leetcode_ranking %}
+              <span class="badge bg-body-secondary text-muted border small">Rank #{{ user_profile.leetcode_ranking|stringformat:",d" }}</span>
+            {% endif %}
+            {% if user_profile.leetcode_topic_stats %}
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle small">
+                <i class="bi bi-tags-fill me-1"></i>{{ user_profile.leetcode_topic_stats|length }} Topics Synced
+              </span>
+            {% endif %}
+          {% else %}
+            <span class="badge bg-secondary-subtle text-secondary border small">Not Connected</span>
+          {% endif %}
+        </div>
+        <div class="text-muted small mt-1">
+          {% if user_profile.leetcode_username %}
+            Official Solved: <strong>{{ user_profile.leetcode_solved_count }}</strong>
+            (<span class="text-success fw-semibold">{{ user_profile.leetcode_easy_count }} Easy</span>,
+             <span class="text-warning fw-semibold">{{ user_profile.leetcode_medium_count }} Med</span>,
+             <span class="text-danger fw-semibold">{{ user_profile.leetcode_hard_count }} Hard</span>)
+            {% if user_profile.leetcode_last_synced %}
+              • Synced {{ user_profile.leetcode_last_synced|timesince }} ago
+            {% endif %}
+          {% else %}
+            Paste your public LeetCode profile URL to extract your official solved problems, difficulty breakdown, and topics done so far.
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-2 flex-shrink-0">
+      {% if user_profile.leetcode_topic_stats %}
+        <button class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" type="button" data-bs-toggle="collapse" data-bs-target="#leetcodeTopicsCollapse" aria-expanded="false" aria-controls="leetcodeTopicsCollapse">
+          <i class="bi bi-grid-3x3-gap-fill"></i>
+          <span>View Topics ({{ user_profile.leetcode_topic_stats|length }})</span>
+        </button>
+      {% endif %}
+      {% if user_profile.leetcode_username %}
+        <form method="post" action="{% url 'sync_leetcode' %}" class="d-inline m-0">
+          {% csrf_token %}
+          <input type="hidden" name="leetcode_url" value="{{ user_profile.effective_profile_url|default:user_profile.leetcode_username }}">
+          <button type="submit" class="btn btn-primary-custom btn-sm d-flex align-items-center gap-2" title="Re-sync data from official LeetCode">
+            <i class="bi bi-arrow-repeat"></i>
+            <span>Re-Sync</span>
+          </button>
+        </form>
+      {% endif %}
+      <button type="button" class="btn btn-secondary-custom btn-sm d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#leetcodeSyncModal">
+        <i class="bi bi-link-45deg"></i>
+        <span>{% if user_profile.leetcode_username %}Change URL{% else %}Connect Profile URL{% endif %}</span>
+      </button>
+    </div>
+  </div>
+
+  {% if user_profile.leetcode_topic_stats %}
+    <!-- Collapsible Synced Topics Breakdown -->
+    <div class="collapse mt-3 pt-3 border-top" id="leetcodeTopicsCollapse">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="fw-semibold small text-muted">
+          <i class="bi bi-check2-circle text-success me-1"></i>Topics & Problems Solved on Official LeetCode
+        </span>
+        <span class="text-muted small">
+          Total Topics: <strong>{{ user_profile.leetcode_topic_stats|length }}</strong>
+        </span>
+      </div>
+      <div class="d-flex flex-wrap gap-2" style="max-height: 180px; overflow-y: auto;">
+        {% for t in user_profile.leetcode_topic_stats %}
+          <div class="badge bg-body-tertiary text-body border d-flex align-items-center gap-1 px-2 py-1" style="font-weight: 500;">
+            <span>{{ t.name }}</span>
+            <span class="badge bg-primary text-white rounded-pill ms-1" style="font-size: 0.7rem;">{{ t.solved }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<!-- KPI Summary Metrics Grid -->
+<div class="row g-3 mb-4">
+  <!-- Total Problems -->
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card" style="--kpi-accent: #4f46e5; --kpi-bg: rgba(79, 70, 229, 0.12);">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="kpi-label">Total Problems</span>
+        <div class="kpi-icon"><i class="bi bi-collection-fill"></i></div>
+      </div>
+      <div class="kpi-value">{{ kpis.total_problems }}</div>
+      <div class="text-muted small mt-1">
+        <span class="text-success fw-semibold">{{ kpis.mastery_rate }}%</span> mastery rate
+      </div>
+    </div>
+  </div>
+
+  <!-- Mastered -->
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card" style="--kpi-accent: #10b981; --kpi-bg: rgba(16, 185, 129, 0.12);">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="kpi-label">Mastered</span>
+        <div class="kpi-icon" style="color: #10b981;"><i class="bi bi-star-fill"></i></div>
+      </div>
+      <div class="kpi-value text-success">{{ kpis.mastered_problems }}</div>
+      <div class="text-muted small mt-1">
+        Out of {{ kpis.total_problems }} problem{{ kpis.total_problems|pluralize }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Revision Queue Due Today -->
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card" style="--kpi-accent: #ef4444; --kpi-bg: rgba(239, 68, 68, 0.12);">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="kpi-label">Revisions Due</span>
+        <div class="kpi-icon" style="color: #ef4444;"><i class="bi bi-arrow-repeat"></i></div>
+      </div>
+      <div class="kpi-value {% if kpis.revisions_due_today > 0 %}text-danger{% endif %}">{{ kpis.revisions_due_today }}</div>
+      <div class="text-muted small mt-1">
+        {% if kpis.revisions_due_today > 0 %}
+          <a href="{% url 'revision_today' %}" class="text-danger fw-semibold text-decoration-none">Review queue now &rarr;</a>
+        {% else %}
+          <span class="text-success fw-semibold">All caught up today</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Total Time / Practice Velocity -->
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card" style="--kpi-accent: #f59e0b; --kpi-bg: rgba(245, 158, 11, 0.12);">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="kpi-label">Practice Time</span>
+        <div class="kpi-icon" style="color: #f59e0b;"><i class="bi bi-stopwatch-fill"></i></div>
+      </div>
+      <div class="kpi-value">
+        {% if kpis.total_time_minutes >= 60 %}
+          {{ kpis.total_time_minutes|divisibleby:60 }}h
+        {% else %}
+          {{ kpis.total_time_minutes }}m
+        {% endif %}
+      </div>
+      <div class="text-muted small mt-1">
+        Across <strong>{{ kpis.total_attempts }}</strong> attempt{{ kpis.total_attempts|pluralize }} ({{ kpis.success_rate }}% success)
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Skill Graph & Pattern Mastery Pulse Banner -->
+<div class="card card-custom p-3 p-md-4 mb-4" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.06) 0%, rgba(16, 185, 129, 0.06) 100%); border-left: 4px solid #6366f1;">
+  <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-mono small">
+          <i class="bi bi-diagram-3-fill me-1"></i>DSA Skill Graph
+        </span>
+        <span class="text-muted small">•</span>
+        <span class="text-muted small">Pattern Mastery Engine</span>
+      </div>
+      <h5 class="fw-bold mb-1">Algorithmic Readiness: {{ mastery_matrix.overall_readiness_score }}%</h5>
+      <p class="text-muted small mb-0">
+        You have mastered <strong>{{ mastery_matrix.mastered_patterns_count }} of 16</strong> interview patterns.
+        {% if mastery_matrix.diagnostics.weak %}
+          <span class="text-danger fw-semibold">{{ mastery_matrix.diagnostics.weak|length }} weak pattern{{ mastery_matrix.diagnostics.weak|length|pluralize }}</span> flagged for review.
+        {% else %}
+          <span class="text-success fw-semibold">No critical weak patterns detected!</span>
+        {% endif %}
+      </p>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center gap-3">
+      <div class="d-flex gap-2">
+        <span class="badge bg-success-subtle text-success border border-success-subtle small px-2 py-1">
+          <i class="bi bi-check-circle-fill me-1"></i>{{ mastery_matrix.diagnostics.strong|length }} Strong
+        </span>
+        <span class="badge bg-danger-subtle text-danger border border-danger-subtle small px-2 py-1">
+          <i class="bi bi-exclamation-circle-fill me-1"></i>{{ mastery_matrix.diagnostics.weak|length }} Weak
+        </span>
+        <span class="badge bg-warning-subtle text-warning border border-warning-subtle small px-2 py-1">
+          <i class="bi bi-clock-history me-1"></i>{{ mastery_matrix.diagnostics.forgotten|length }} Decayed
+        </span>
+      </div>
+      <a href="{% url 'skill_graph' %}" class="btn btn-primary-custom btn-sm d-flex align-items-center gap-1 shadow-sm">
+        <span>Explore Skill Graph</span>
+        <i class="bi bi-arrow-right"></i>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row: Topic Progress & Difficulty Distribution -->
+<div class="row g-4 mb-4">
+  <!-- Topic Mastery Chart -->
+  <div class="col-lg-8">
+    <div class="card card-custom h-100">
+      <div class="card-header-custom">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-bar-chart-fill text-primary"></i>
+          <span>Problems Solved & Mastered by Topic</span>
+        </div>
+        <a href="{% url 'problem_list' %}" class="btn btn-sm btn-link text-decoration-none p-0 small">View all</a>
+      </div>
+      <div class="card-body p-3 p-md-4">
+        {% if topic_progress %}
+          <div style="height: 280px; position: relative;">
+            <canvas id="topicChart"></canvas>
+          </div>
+        {% else %}
+          <div class="text-center py-5 text-muted small">
+            <i class="bi bi-bar-chart fs-2 d-block mb-2 opacity-50"></i>
+            Add problems to see topic-level progress and mastery distributions.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Difficulty Doughnut Chart -->
+  <div class="col-lg-4">
+    <div class="card card-custom h-100">
+      <div class="card-header-custom">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-pie-chart-fill text-warning"></i>
+          <span>Difficulty Breakdown</span>
+        </div>
+      </div>
+      <div class="card-body p-3 p-md-4 d-flex flex-column align-items-center justify-content-center">
+        {% if kpis.total_problems > 0 %}
+          <div style="height: 230px; width: 100%; position: relative;">
+            <canvas id="difficultyChart"></canvas>
+          </div>
+        {% else %}
+          <div class="text-center py-5 text-muted small">
+            <i class="bi bi-pie-chart fs-2 d-block mb-2 opacity-50"></i>
+            No problems categorized yet.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Diagnostics & Weak Areas Row -->
+<div class="row g-4 mb-4">
+  <!-- Weak Patterns Detection -->
+  <div class="col-lg-6">
+    <div class="card card-custom h-100">
+      <div class="card-header-custom">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-lightning-charge-fill text-danger"></i>
+          <span>Weak Pattern Detection (Avg Solve Time)</span>
+        </div>
+        <span class="badge bg-danger-subtle text-danger border border-danger-subtle small">Focus Area</span>
+      </div>
+      <div class="card-body p-4">
+        {% if weak_patterns %}
+          <p class="text-muted small mb-3">
+            Algorithmic patterns with the highest average time-to-solve indicate friction points where more repetition pays off:
+          </p>
+          <div style="height: 200px; position: relative;">
+            <canvas id="weakPatternChart"></canvas>
+          </div>
+        {% else %}
+          <div class="text-center py-5 text-muted small">
+            <i class="bi bi-lightbulb fs-2 d-block mb-2 opacity-50"></i>
+            Log time taken during problem attempts to detect your slowest and weakest patterns automatically.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Today's Revision Queue Preview -->
+  <div class="col-lg-6">
+    <div class="card card-custom h-100">
+      <div class="card-header-custom">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-arrow-repeat text-info"></i>
+          <span>Today's Spaced Repetition Queue</span>
+        </div>
+        <a href="{% url 'revision_today' %}" class="btn btn-sm btn-link text-decoration-none p-0 small">Open Queue</a>
+      </div>
+      <div class="card-body p-0">
+        {% if today_revisions %}
+          <div class="list-group list-group-flush">
+            {% for rev in today_revisions|slice:":4" %}
+              <div class="list-group-item d-flex justify-content-between align-items-center p-3" style="background: transparent; border-color: var(--border-color);">
+                <div>
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="{{ rev.problem.difficulty_badge_class }}">{{ rev.problem.get_difficulty_display }}</span>
+                    <span class="badge bg-body-secondary text-body border">{{ rev.problem.topic.name }}</span>
+                  </div>
+                  <a href="{% url 'submit_revision' rev.problem.id %}" class="fw-semibold text-body text-decoration-none">
+                    {{ rev.problem.title }}
+                  </a>
+                </div>
+                <a href="{% url 'submit_revision' rev.problem.id %}" class="btn btn-primary-custom btn-sm">
+                  Review
+                </a>
+              </div>
+            {% endfor %}
+          </div>
+          {% if today_revisions.count > 4 %}
+            <div class="p-3 text-center border-top">
+              <a href="{% url 'revision_today' %}" class="text-primary fw-semibold small text-decoration-none">
+                + {{ today_revisions.count|add:"-4" }} more due today &rarr;
+              </a>
+            </div>
+          {% endif %}
+        {% else %}
+          <div class="text-center py-5 text-muted small">
+            <i class="bi bi-check2-circle text-success fs-2 d-block mb-2"></i>
+            No revisions due right now. You're completely up to date!
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Practice Attempts -->
+<div class="card card-custom mb-4">
+  <div class="card-header-custom">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-clock-history text-muted"></i>
+      <span>Recent Practice Attempts</span>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    {% if recent_attempts %}
+      <div class="table-responsive">
+        <table class="table table-custom">
+          <thead>
+            <tr>
+              <th>Problem</th>
+              <th>Topic</th>
+              <th>Duration</th>
+              <th>Status</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in recent_attempts %}
+              <tr>
+                <td>
+                  <a href="{% url 'problem_detail' a.problem.id %}" class="fw-semibold text-body text-decoration-none">
+                    {{ a.problem.title }}
+                  </a>
+                </td>
+                <td>
+                  <span class="badge bg-body-secondary text-body border">{{ a.problem.topic.name }}</span>
+                </td>
+                <td class="font-mono">{{ a.time_taken_minutes }} mins</td>
+                <td>
+                  {% if a.was_successful %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">
+                      <i class="bi bi-check-lg me-1"></i>Success
+                    </span>
+                  {% else %}
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill">
+                      <i class="bi bi-x-lg me-1"></i>Failed
+                    </span>
+                  {% endif %}
+                </td>
+                <td class="small text-muted">{{ a.solved_at|date:"M d, H:i" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center py-5 text-muted small">
+        <i class="bi bi-stopwatch fs-2 d-block mb-2 opacity-50"></i>
+        No attempts logged yet. As you solve questions, log your time and approach notes to see your speed trends!
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<!-- Pass View Context to charts.js -->
+<script>
+  window.TOPIC_LABELS = {{ topic_labels_json|safe }};
+  window.TOPIC_TOTALS = {{ topic_totals_json|safe }};
+  window.TOPIC_MASTERED = {{ topic_mastered_json|safe }};
+  window.DIFF_COUNTS = {{ diff_counts_json|safe }};
+  window.PATTERN_LABELS = {{ pattern_labels_json|safe }};
+  window.PATTERN_AVG_TIMES = {{ pattern_avg_times_json|safe }};
+</script>
+<script src="{% static 'tracker/js/charts.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Live Interview Simulation — Session #{{ session.id }}{% endblock %}
+
+{% block content %}
+<!-- Top Header Bar with Timer & Status -->
+<div class="card card-custom p-3 mb-4 shadow-sm" style="border-left: 4px solid #ef4444;">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+    <div class="d-flex align-items-center gap-3">
+      <div style="width: 40px; height: 40px; border-radius: var(--radius-sm); background: #ef4444; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+        <i class="bi bi-mic-fill"></i>
+      </div>
+      <div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="fw-bold fs-6">Technical Interview Simulation #{{ session.id }}</span>
+          <span class="badge bg-body-secondary text-body border font-mono small">{{ session.track }}</span>
+          <span class="badge {% if session.difficulty == 'EASY' %}badge-difficulty-easy{% elif session.difficulty == 'HARD' %}badge-difficulty-hard{% else %}badge-difficulty-medium{% endif %}">
+            {{ session.difficulty }}
+          </span>
+        </div>
+        <div class="text-muted small mt-1">
+          Target Duration: {{ session.duration_minutes }} mins • {{ questions|length }} Problem{{ questions|length|pluralize }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Countdown Timer -->
+    <div class="d-flex align-items-center gap-3">
+      <div class="d-flex align-items-center gap-2 px-3 py-1 rounded border font-mono fs-5 fw-bold" id="timerBadge" style="background: var(--bg-surface-subtle); color: #ef4444;">
+        <i class="bi bi-stopwatch"></i>
+        <span id="countdownDisplay">--:--</span>
+      </div>
+      <a href="{% url 'interview_complete' session.id %}" class="btn btn-outline-danger btn-sm" onclick="return confirm('Are you sure you want to finish the interview simulation early?');">
+        Finish Early &rarr;
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Question Navigation Tabs -->
+<ul class="nav nav-pills mb-3 gap-2">
+  {% for q in questions %}
+    <li class="nav-item">
+      <a class="nav-link py-2 px-3 {% if q.id == active_question.id %}active bg-primary{% else %}bg-body-secondary text-body border{% endif %}" href="?q={{ q.question_order }}">
+        <span>Question {{ q.question_order }}</span>
+        {% if q.was_passed %}
+          <i class="bi bi-check-circle-fill text-success ms-1"></i>
+        {% elif q.time_taken_seconds > 0 %}
+          <i class="bi bi-clock-fill text-warning ms-1"></i>
+        {% endif %}
+      </a>
+    </li>
+  {% endfor %}
+</ul>
+
+<!-- Split Interactive Console Panel -->
+<div class="row g-4 mb-4">
+  <!-- Left Column: Problem Prompt & Hints -->
+  <div class="col-lg-6">
+    <div class="card card-custom h-100 p-4">
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <span class="badge {% if active_question.canonical_question.difficulty == 'EASY' %}badge-difficulty-easy{% elif active_question.canonical_question.difficulty == 'HARD' %}badge-difficulty-hard{% else %}badge-difficulty-medium{% endif %}">
+          {{ active_question.canonical_question.get_difficulty_display }}
+        </span>
+        <span class="badge-pattern">
+          {{ active_question.canonical_question.get_pattern_display }}
+        </span>
+        {% if active_question.canonical_question.company_tags %}
+          <span class="badge bg-body-tertiary text-muted border small font-mono">
+            {{ active_question.canonical_question.company_tags }}
+          </span>
+        {% endif %}
+      </div>
+
+      <h4 class="fw-bold mb-3">{{ active_question.canonical_question.title }}</h4>
+
+      <!-- Problem Description -->
+      <div class="text-body mb-4" style="line-height: 1.6; font-size: 0.95rem;">
+        {{ active_question.canonical_question.description|linebreaks }}
+      </div>
+
+      <!-- Examples -->
+      {% if active_question.canonical_question.examples %}
+        <div class="mb-4">
+          <label class="form-label small fw-semibold text-muted text-uppercase font-mono">Examples</label>
+          <pre class="p-3 rounded border font-mono small" style="background: var(--bg-surface-subtle); color: var(--text-main); white-space: pre-wrap;">{{ active_question.canonical_question.examples }}</pre>
+        </div>
+      {% endif %}
+
+      <!-- Constraints -->
+      {% if active_question.canonical_question.constraints %}
+        <div class="mb-4">
+          <label class="form-label small fw-semibold text-muted text-uppercase font-mono">Constraints</label>
+          <pre class="p-2 rounded border font-mono small text-muted" style="background: var(--bg-surface-subtle); white-space: pre-wrap;">{{ active_question.canonical_question.constraints }}</pre>
+        </div>
+      {% endif %}
+
+      <!-- Tiered Hint System -->
+      <div class="pt-3 border-top mt-auto">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="fw-semibold small text-muted font-mono text-uppercase">
+            <i class="bi bi-lightbulb text-warning me-1"></i>Tiered Interviewer Hints
+          </span>
+          <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle small" id="hintPenaltyBadge">
+            Hints Used: <span id="hintsCount">{{ active_question.hints_revealed }}</span> (-{{ active_question.hints_revealed|default:0 }}% penalty)
+          </span>
+        </div>
+
+        <div class="d-flex flex-column gap-2" id="hintsAccordion">
+          {% for hint in active_question.canonical_question.hints %}
+            {% with hint_num=forloop.counter %}
+              <div class="p-2 rounded border" style="background: var(--bg-surface-subtle);">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="small fw-semibold">Hint {{ hint_num }}: {% if hint_num == 1 %}Intuition{% elif hint_num == 2 %}Data Structure{% else %}Algorithm Steps{% endif %}</span>
+                  <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2 small reveal-hint-btn" data-hint-idx="{{ hint_num }}">
+                    Reveal Hint
+                  </button>
+                </div>
+                <div class="hint-text small text-muted mt-2 pt-2 border-top d-none" id="hintBox{{ hint_num }}">
+                  {{ hint }}
+                </div>
+              </div>
+            {% endwith %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column: Code Scratchpad & Follow-Up Questions -->
+  <div class="col-lg-6">
+    <div class="card card-custom h-100 p-4 d-flex flex-column">
+      <form method="post" action="{% url 'interview_submit_question' session.id active_question.id %}" id="questionSubmitForm">
+        {% csrf_token %}
+        <input type="hidden" name="time_taken_seconds" id="inputTimeSpent" value="{{ active_question.time_taken_seconds }}">
+        <input type="hidden" name="hints_revealed" id="inputHintsRevealed" value="{{ active_question.hints_revealed }}">
+
+        <!-- Approach & Intuition Scratchpad -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold small text-muted">
+            <i class="bi bi-card-text me-1"></i>Approach, Invariant & Complexity Explanation
+          </label>
+          <textarea name="candidate_approach" class="form-control font-mono small" rows="4" placeholder="Explain your algorithmic idea before coding. Mention optimal time & space complexities (e.g. O(N) time using Two Pointers)...">{{ active_question.candidate_approach }}</textarea>
+        </div>
+
+        <!-- Code Scratchpad -->
+        <div class="mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <label class="form-label fw-semibold small text-muted mb-0">
+              <i class="bi bi-code-slash me-1"></i>Implementation / Pseudo-code Scratchpad
+            </label>
+            <span class="badge bg-body-tertiary text-muted border font-mono small">Python / Java / C++ / JS</span>
+          </div>
+          <textarea name="candidate_code" class="form-control font-mono small" rows="8" placeholder="def solve(nums):&#10;    # Write clean interview implementation here...&#10;    pass" style="tab-size: 4;">{{ active_question.candidate_code }}</textarea>
+        </div>
+
+        <!-- Interviewer Follow-Up Question -->
+        {% if active_question.canonical_question.follow_ups %}
+          {% with fu=active_question.canonical_question.follow_ups.0 %}
+            <div class="p-3 rounded border mb-3" style="background: rgba(99, 102, 241, 0.05); border-color: rgba(99, 102, 241, 0.2) !important;">
+              <div class="fw-bold small text-primary mb-1">
+                <i class="bi bi-chat-quote-fill me-1"></i>Interviewer Follow-Up Question:
+              </div>
+              <div class="small fw-semibold mb-2">{{ fu.question }}</div>
+              {% if fu.options %}
+                {% for opt in fu.options %}
+                  <div class="form-check small mb-1">
+                    <input class="form-check-input" type="radio" name="follow_up_answer" id="fuOpt{{ forloop.counter }}" value="{{ opt }}" {% if active_question.follow_up_answer == opt %}checked{% endif %}>
+                    <label class="form-check-label text-muted" for="fuOpt{{ forloop.counter }}">{{ opt }}</label>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <input type="text" name="follow_up_answer" class="form-control form-control-sm" placeholder="Your follow-up answer or complexity trade-off..." value="{{ active_question.follow_up_answer }}">
+              {% endif %}
+            </div>
+          {% endwith %}
+        {% endif %}
+
+        <!-- Self-Verification / Outcome -->
+        <div class="p-3 rounded border mb-4" style="background: var(--bg-surface-subtle);">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" name="was_passed" id="wasPassedCheck" value="true" {% if active_question.was_passed %}checked{% endif %}>
+            <label class="form-check-label small fw-semibold" for="wasPassedCheck">
+              I have verified the solution against edge cases and dry-run tests
+            </label>
+          </div>
+        </div>
+
+        <!-- Submit & Navigation Buttons -->
+        <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
+          <span class="text-muted small" id="qTimeSpentDisplay">Time on Q: 0m 0s</span>
+          <button type="submit" class="btn btn-primary-custom btn-sm px-4 d-flex align-items-center gap-2">
+            <span>Save & Next Question</span>
+            <i class="bi bi-arrow-right"></i>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Live Countdown & Hint Tracking Scripts -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  let remainingSeconds = {{ remaining_seconds|default:2700 }};
+  const countdownEl = document.getElementById('countdownDisplay');
+  const timerBadge = document.getElementById('timerBadge');
+
+  let qSecondsSpent = {{ active_question.time_taken_seconds|default:0 }};
+  const qTimeDisplay = document.getElementById('qTimeSpentDisplay');
+  const inputTimeSpent = document.getElementById('inputTimeSpent');
+
+  // Interval timer
+  const timerInterval = setInterval(() => {
+    if (remainingSeconds > 0) {
+      remainingSeconds--;
+    } else {
+      clearInterval(timerInterval);
+      alert('Time is up for this interview simulation session! Submitting responses.');
+      document.getElementById('questionSubmitForm').submit();
+    }
+
+    qSecondsSpent++;
+    if (inputTimeSpent) inputTimeSpent.value = qSecondsSpent;
+
+    const mins = Math.floor(remainingSeconds / 60);
+    const secs = remainingSeconds % 60;
+    countdownEl.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+    const qMins = Math.floor(qSecondsSpent / 60);
+    const qSecs = qSecondsSpent % 60;
+    if (qTimeDisplay) qTimeDisplay.innerText = `Time on Q: ${qMins}m ${qSecs}s`;
+
+    if (remainingSeconds < 300) {
+      timerBadge.style.color = '#dc2626';
+    } else if (remainingSeconds < 600) {
+      timerBadge.style.color = '#f59e0b';
+    }
+  }, 1000);
+
+  // Hint Reveal logic
+  let hintsRevealedCount = parseInt("{{ active_question.hints_revealed|default:0 }}");
+  const inputHints = document.getElementById('inputHintsRevealed');
+  const hintsCountEl = document.getElementById('hintsCount');
+  const penaltyBadge = document.getElementById('hintPenaltyBadge');
+
+  document.querySelectorAll('.reveal-hint-btn').forEach(btn => {
+    const idx = btn.getAttribute('data-hint-idx');
+    const box = document.getElementById('hintBox' + idx);
+
+    btn.addEventListener('click', () => {
+      if (box.classList.contains('d-none')) {
+        box.classList.remove('d-none');
+        btn.innerText = 'Revealed';
+        btn.disabled = true;
+        hintsRevealedCount++;
+        if (inputHints) inputHints.value = hintsRevealedCount;
+        if (hintsCountEl) hintsCountEl.innerText = hintsRevealedCount;
+        if (penaltyBadge) {
+          penaltyBadge.innerText = `Hints Used: ${hintsRevealedCount} (-${hintsRevealedCount * 10}% penalty)`;
+        }
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

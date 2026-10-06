@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Interview Performance Report — Session #{{ session.id }}{% endblock %}
+
+{% block content %}
+<!-- Top Header -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="badge bg-success-subtle text-success border border-success-subtle font-mono small">
+        <i class="bi bi-file-earmark-check-fill me-1"></i>Simulation Complete
+      </span>
+      <span class="text-muted small">•</span>
+      <span class="text-muted small">Diagnostic Evaluation</span>
+    </div>
+    <h2 class="fw-bold mb-1">Technical Interview Performance Report</h2>
+    <p class="text-muted small mb-0">
+      Session #{{ session.id }} • {{ session.track }} Track • {{ session.get_difficulty_display }} Difficulty • {{ session.completed_at|date:"M d, Y H:i" }}
+    </p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <a href="{% url 'interview_hub' %}" class="btn btn-secondary-custom btn-sm d-flex align-items-center gap-1">
+      <i class="bi bi-arrow-left"></i>
+      <span>Interview Hub</span>
+    </a>
+    <a href="{% url 'revision_today' %}" class="btn btn-outline-danger btn-sm d-flex align-items-center gap-2">
+      <i class="bi bi-alarm-fill"></i>
+      <span>Review in Spaced Repetition Queue</span>
+    </a>
+  </div>
+</div>
+
+<!-- Overall Score Banner -->
+<div class="card card-custom p-4 mb-4 text-center" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%); border-left: 5px solid {% if report.overall_score >= 75 %}#10b981{% elif report.overall_score >= 50 %}#f59e0b{% else %}#ef4444{% endif %};">
+  <div class="row align-items-center g-3">
+    <div class="col-md-4 text-md-start">
+      <span class="text-muted small font-mono text-uppercase">Evaluation Verdict</span>
+      <h3 class="fw-bold mb-1">
+        {% if report.overall_score >= 80 %}
+          <span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Strong Pass / Offer Ready</span>
+        {% elif report.overall_score >= 65 %}
+          <span class="text-primary"><i class="bi bi-check2 me-1"></i>Passing Standard / Borderline</span>
+        {% elif report.overall_score >= 45 %}
+          <span class="text-warning"><i class="bi bi-exclamation-circle-fill me-1"></i>Needs Pattern Reinforcement</span>
+        {% else %}
+          <span class="text-danger"><i class="bi bi-x-circle-fill me-1"></i>Unprepared / High Risk</span>
+        {% endif %}
+      </h3>
+      <p class="text-muted small mb-0">
+        Based on candidate correctness, speed, algorithmic pattern identification, and hint penalties.
+      </p>
+    </div>
+
+    <div class="col-md-4 text-center">
+      <div class="display-3 fw-bold font-mono {% if report.overall_score >= 75 %}text-success{% elif report.overall_score >= 50 %}text-warning{% else %}text-danger{% endif %}">
+        {{ report.overall_score }}%
+      </div>
+      <div class="text-muted small fw-semibold">Composite Readiness Score</div>
+    </div>
+
+    <div class="col-md-4 text-md-end">
+      <div class="p-3 rounded border text-start d-inline-block" style="background: var(--bg-surface); border-color: var(--border-color) !important;">
+        <div class="small fw-bold text-danger mb-1"><i class="bi bi-flag-fill me-1"></i>Flagged Weak Area:</div>
+        <div class="small text-muted">{{ report.weak_area|default:"None. Strong across all tested areas." }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 5-Dimension Scorecard Grid -->
+<h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+  <i class="bi bi-speedometer2 text-primary"></i>
+  <span>5-Dimension Interview Metric Breakdown</span>
+</h5>
+
+<div class="row g-3 mb-4">
+  <!-- 1. Problem Solving -->
+  <div class="col-6 col-lg">
+    <div class="kpi-card text-center p-3">
+      <div class="small text-muted text-uppercase font-mono mb-1">Problem Solving</div>
+      <div class="fs-3 fw-bold font-mono text-primary">{{ report.problem_solving_score }}%</div>
+      <div class="progress mt-2" style="height: 5px;">
+        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ report.problem_solving_score }}%;"></div>
+      </div>
+      <span class="text-muted small mt-2 d-block" style="font-size: 0.72rem;">Correctness & Logic</span>
+    </div>
+  </div>
+
+  <!-- 2. Pattern Recognition -->
+  <div class="col-6 col-lg">
+    <div class="kpi-card text-center p-3">
+      <div class="small text-muted text-uppercase font-mono mb-1">Pattern Recognition</div>
+      <div class="fs-3 fw-bold font-mono text-success">{{ report.pattern_recognition_score }}%</div>
+      <div class="progress mt-2" style="height: 5px;">
+        <div class="progress-bar bg-success" role="progressbar" style="width: {{ report.pattern_recognition_score }}%;"></div>
+      </div>
+      <span class="text-muted small mt-2 d-block" style="font-size: 0.72rem;">Algorithmic Mapping</span>
+    </div>
+  </div>
+
+  <!-- 3. Time Management -->
+  <div class="col-6 col-lg">
+    <div class="kpi-card text-center p-3">
+      <div class="small text-muted text-uppercase font-mono mb-1">Time Management</div>
+      <div class="fs-3 fw-bold font-mono text-warning">{{ report.time_management_score }}%</div>
+      <div class="progress mt-2" style="height: 5px;">
+        <div class="progress-bar bg-warning" role="progressbar" style="width: {{ report.time_management_score }}%;"></div>
+      </div>
+      <span class="text-muted small mt-2 d-block" style="font-size: 0.72rem;">Velocity vs Benchmark</span>
+    </div>
+  </div>
+
+  <!-- 4. Optimization -->
+  <div class="col-6 col-lg">
+    <div class="kpi-card text-center p-3">
+      <div class="small text-muted text-uppercase font-mono mb-1">Optimization</div>
+      <div class="fs-3 fw-bold font-mono text-info">{{ report.optimization_score }}%</div>
+      <div class="progress mt-2" style="height: 5px;">
+        <div class="progress-bar bg-info" role="progressbar" style="width: {{ report.optimization_score }}%;"></div>
+      </div>
+      <span class="text-muted small mt-2 d-block" style="font-size: 0.72rem;">Follow-up Trade-offs</span>
+    </div>
+  </div>
+
+  <!-- 5. Independence -->
+  <div class="col-12 col-lg">
+    <div class="kpi-card text-center p-3">
+      <div class="small text-muted text-uppercase font-mono mb-1">Independence</div>
+      <div class="fs-3 fw-bold font-mono text-danger">{{ report.consistency_score }}%</div>
+      <div class="progress mt-2" style="height: 5px;">
+        <div class="progress-bar bg-danger" role="progressbar" style="width: {{ report.consistency_score }}%;"></div>
+      </div>
+      <span class="text-muted small mt-2 d-block" style="font-size: 0.72rem;">Hint Penalty Deduction</span>
+    </div>
+  </div>
+</div>
+
+<!-- 3-Day Action Plan & Question Breakdown Row -->
+<div class="row g-4 mb-4">
+  <!-- 3-Day Personalized Revision Plan -->
+  <div class="col-lg-5">
+    <div class="card card-custom h-100 p-4">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <i class="bi bi-calendar-check text-primary fs-5"></i>
+        <h5 class="fw-bold mb-0">3-Day Personalized Action Plan</h5>
+      </div>
+      <p class="text-muted small mb-3">
+        Generated automatically based on patterns you struggled with during this simulation. These items have been injected into your SM-2 spaced repetition queue.
+      </p>
+
+      <div class="d-flex flex-column gap-3">
+        {% for item in report.revision_roadmap %}
+          <div class="p-3 rounded border" style="background: var(--bg-surface-subtle); border-color: var(--border-color) !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="badge bg-primary text-white font-mono small">{{ item.day }}</span>
+              <span class="text-muted small font-mono">Spaced Repetition Active</span>
+            </div>
+            <div class="small fw-semibold mt-1">{{ item.task }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Per-Question Attempt Detail -->
+  <div class="col-lg-7">
+    <div class="card card-custom h-100">
+      <div class="card-header-custom d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-list-check text-success"></i>
+          <span>Question-by-Question Diagnostics</span>
+        </div>
+        <span class="badge bg-body-secondary text-muted border small font-mono">{{ questions|length }} Questions</span>
+      </div>
+
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table align-middle mb-0" style="color: var(--text-main);">
+            <thead style="background: var(--bg-surface-subtle); border-bottom: 1px solid var(--border-color);">
+              <tr class="small text-muted text-uppercase">
+                <th class="ps-3 py-2">Question</th>
+                <th class="py-2">Pattern</th>
+                <th class="py-2">Time Spent</th>
+                <th class="py-2">Hints</th>
+                <th class="pe-3 py-2 text-end">Outcome</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for q in questions %}
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="ps-3 py-3">
+                    <div class="fw-bold">{{ q.canonical_question.title }}</div>
+                    <span class="badge {% if q.canonical_question.difficulty == 'EASY' %}badge-difficulty-easy{% elif q.canonical_question.difficulty == 'HARD' %}badge-difficulty-hard{% else %}badge-difficulty-medium{% endif %} small" style="font-size: 0.7rem;">
+                      {{ q.canonical_question.get_difficulty_display }}
+                    </span>
+                  </td>
+                  <td class="py-3 small text-muted">
+                    {{ q.canonical_question.get_pattern_display }}
+                  </td>
+                  <td class="py-3 font-mono small text-muted">
+                    {{ q.time_taken_seconds|divisibleby:60 }}m {{ q.time_taken_seconds|default:0 }}s
+                  </td>
+                  <td class="py-3 font-mono small">
+                    {% if q.hints_revealed > 0 %}
+                      <span class="text-danger fw-bold">{{ q.hints_revealed }} hint{{ q.hints_revealed|pluralize }}</span>
+                    {% else %}
+                      <span class="text-success">0 hints</span>
+                    {% endif %}
+                  </td>
+                  <td class="pe-3 py-3 text-end">
+                    {% if q.was_passed %}
+                      <span class="badge bg-success-subtle text-success border border-success-subtle">
+                        <i class="bi bi-check-circle-fill me-1"></i>Passed
+                      </span>
+                    {% else %}
+                      <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                        <i class="bi bi-x-circle-fill me-1"></i>Struggled
+                      </span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}Problem Bank — Smart DSA Tracker{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4">
+  <div>
+    <h2 class="fw-bold mb-1">Problem Bank</h2>
+    <p class="text-muted small mb-0">
+      Track, organize, and master your technical interview problems ({{ total_count }} total)
+    </p>
+  </div>
+  <div>
+    <a href="{% url 'problem_create' %}" class="btn btn-primary-custom d-inline-flex align-items-center gap-2">
+      <i class="bi bi-plus-lg"></i>
+      <span>Add New Problem</span>
+    </a>
+  </div>
+</div>
+
+<!-- Filter Toolbar -->
+<div class="filter-bar">
+  <form method="get" action="{% url 'problem_list' %}" class="row g-2 align-items-end">
+    <!-- Search Query -->
+    <div class="col-12 col-md-3">
+      <label for="filterSearch" class="form-label small fw-semibold text-muted mb-1">Search</label>
+      <div class="input-group input-group-sm">
+        <span class="input-group-text bg-body-tertiary"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" id="filterSearch" class="form-control" placeholder="Search title or notes..." value="{{ query }}">
+      </div>
+    </div>
+
+    <!-- Topic Filter -->
+    <div class="col-6 col-md-2">
+      <label for="filterTopic" class="form-label small fw-semibold text-muted mb-1">Topic</label>
+      <select name="topic" id="filterTopic" class="form-select form-select-sm">
+        <option value="">All Topics</option>
+        {% for t in topics %}
+          <option value="{{ t.slug }}" {% if selected_topic == t.slug %}selected{% endif %}>{{ t.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Difficulty Filter -->
+    <div class="col-6 col-md-2">
+      <label for="filterDiff" class="form-label small fw-semibold text-muted mb-1">Difficulty</label>
+      <select name="difficulty" id="filterDiff" class="form-select form-select-sm">
+        <option value="">All Difficulties</option>
+        {% for code, label in difficulties %}
+          <option value="{{ code }}" {% if selected_difficulty == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Pattern Filter -->
+    <div class="col-6 col-md-2">
+      <label for="filterPattern" class="form-label small fw-semibold text-muted mb-1">Pattern</label>
+      <select name="pattern" id="filterPattern" class="form-select form-select-sm">
+        <option value="">All Patterns</option>
+        {% for code, label in patterns %}
+          <option value="{{ code }}" {% if selected_pattern == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Mastery Filter -->
+    <div class="col-6 col-md-2">
+      <label for="filterMastered" class="form-label small fw-semibold text-muted mb-1">Mastery</label>
+      <select name="mastered" id="filterMastered" class="form-select form-select-sm">
+        <option value="">All Statuses</option>
+        <option value="yes" {% if selected_mastered == 'yes' %}selected{% endif %}>Mastered ⭐</option>
+        <option value="no" {% if selected_mastered == 'no' %}selected{% endif %}>Needs Practice</option>
+      </select>
+    </div>
+
+    <!-- Actions -->
+    <div class="col-12 col-md-1 d-flex gap-1">
+      <button type="submit" class="btn btn-primary-custom btn-sm w-100" title="Apply Filters">
+        <i class="bi bi-funnel-fill"></i>
+      </button>
+      {% if query or selected_topic or selected_difficulty or selected_pattern or selected_mastered %}
+        <a href="{% url 'problem_list' %}" class="btn btn-secondary-custom btn-sm" title="Clear Filters">
+          <i class="bi bi-x-lg"></i>
+        </a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- Problems Table Card -->
+<div class="card card-custom overflow-hidden">
+  {% if problems %}
+    <div class="table-responsive">
+      <table class="table table-custom">
+        <thead>
+          <tr>
+            <th style="width: 35%;">Problem Title</th>
+            <th>Topic</th>
+            <th>Pattern</th>
+            <th>Difficulty</th>
+            <th>Mastery</th>
+            <th>Next Review</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in problems %}
+            <tr>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <form method="post" action="{% url 'toggle_mastery' p.id %}" class="d-inline m-0">
+                    {% csrf_token %}
+                    <button type="submit" class="btn p-0 border-0 bg-transparent" title="Toggle mastery status">
+                      {% if p.is_mastered %}
+                        <i class="bi bi-star-fill text-warning fs-6"></i>
+                      {% else %}
+                        <i class="bi bi-star text-muted fs-6"></i>
+                      {% endif %}
+                    </button>
+                  </form>
+                  <div>
+                    <a href="{% url 'problem_detail' p.id %}" class="fw-semibold text-decoration-none text-body">
+                      {{ p.title }}
+                    </a>
+                    {% if p.link %}
+                      <a href="{{ p.link }}" target="_blank" rel="noopener noreferrer" class="text-muted ms-1 small" title="Open problem link">
+                        <i class="bi bi-box-arrow-up-right" style="font-size: 0.75rem;"></i>
+                      </a>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="badge bg-body-secondary text-body border" style="font-weight: 500;">
+                  {{ p.topic.name }}
+                </span>
+              </td>
+              <td>
+                <span class="badge-pattern">
+                  {{ p.get_pattern_display }}
+                </span>
+              </td>
+              <td>
+                <span class="{{ p.difficulty_badge_class }}">
+                  {{ p.get_difficulty_display }}
+                </span>
+              </td>
+              <td>
+                {% if p.is_mastered %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 rounded-pill small">
+                    <i class="bi bi-check-circle-fill me-1"></i>Mastered
+                  </span>
+                {% else %}
+                  <span class="badge bg-secondary-subtle text-secondary border px-2 py-1 rounded-pill small">
+                    In Progress
+                  </span>
+                {% endif %}
+              </td>
+              <td>
+                {% if p.revision %}
+                  {% if p.revision.is_due_today %}
+                    <a href="{% url 'submit_revision' p.id %}" class="badge bg-danger-subtle text-danger border border-danger-subtle text-decoration-none px-2 py-1 rounded-pill">
+                      <i class="bi bi-alarm-fill me-1"></i>Due Today
+                    </a>
+                  {% else %}
+                    <span class="text-muted small">
+                      in {{ p.revision.interval_days }}d ({{ p.revision.next_review_date|date:"M d" }})
+                    </span>
+                  {% endif %}
+                {% else %}
+                  <span class="text-muted small">—</span>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                <div class="dropdown d-inline-block">
+                  <button class="btn btn-sm btn-outline-secondary border-0 py-1 px-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-three-dots-vertical"></i>
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-end shadow-sm border" style="background: var(--bg-surface);">
+                    <li>
+                      <a class="dropdown-item py-2" href="{% url 'problem_detail' p.id %}">
+                        <i class="bi bi-eye me-2 text-primary"></i>View Details
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item py-2" href="{% url 'problem_update' p.id %}">
+                        <i class="bi bi-pencil me-2 text-muted"></i>Edit Problem
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item py-2" href="{% url 'submit_revision' p.id %}">
+                        <i class="bi bi-arrow-repeat me-2 text-info"></i>Practice / Revise
+                      </a>
+                    </li>
+                    <li><hr class="dropdown-divider my-1"></li>
+                    <li>
+                      <button type="button" class="dropdown-item text-danger py-2" data-bs-toggle="modal" data-bs-target="#deleteModal{{ p.id }}">
+                        <i class="bi bi-trash3 me-2"></i>Delete Problem
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+
+                <!-- Delete Confirmation Modal -->
+                <div class="modal fade text-start" id="deleteModal{{ p.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ p.id }}" aria-hidden="true">
+                  <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-color);">
+                      <div class="modal-header border-bottom">
+                        <h5 class="modal-title fw-bold" id="deleteModalLabel{{ p.id }}">Delete Problem</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <div class="modal-body py-4">
+                        <p class="mb-1">Are you sure you want to delete <strong>{{ p.title }}</strong>?</p>
+                        <p class="text-muted small mb-0">This will also delete its attempt history and spaced repetition schedule. This action cannot be undone.</p>
+                      </div>
+                      <div class="modal-footer border-top">
+                        <button type="button" class="btn btn-secondary-custom btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <form method="post" action="{% url 'problem_delete' p.id %}" class="d-inline">
+                          {% csrf_token %}
+                          <button type="submit" class="btn btn-danger btn-sm">Delete Forever</button>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="text-center py-5 px-3">
+      <div class="brand-icon mx-auto mb-3" style="width: 56px; height: 56px; font-size: 1.6rem; opacity: 0.8;">
+        <i class="bi bi-journal-code"></i>
+      </div>
+      <h5 class="fw-bold mb-1">No Problems Found</h5>
+      <p class="text-muted small mb-4" style="max-width: 420px; margin: 0 auto;">
+        {% if query or selected_topic or selected_difficulty or selected_pattern or selected_mastered %}
+          No problems matched your current filter criteria. Try clearing some filters or searching for something else.
+        {% else %}
+          You haven't logged any problems yet. Add your first DSA problem to kick off your spaced repetition schedule!
+        {% endif %}
+      </p>
+      {% if query or selected_topic or selected_difficulty or selected_pattern or selected_mastered %}
+        <a href="{% url 'problem_list' %}" class="btn btn-secondary-custom btn-sm">
+          <i class="bi bi-x-circle me-1"></i>Clear Filters
+        </a>
+      {% else %}
+        <a href="{% url 'problem_create' %}" class="btn btn-primary-custom btn-sm">
+          <i class="bi bi-plus-lg me-1"></i>Add Your First Problem
+        </a>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

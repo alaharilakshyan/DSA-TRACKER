@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}DSA Skill Graph & Pattern Mastery — Smart DSA Tracker{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-mono small">
+        <i class="bi bi-diagram-3-fill me-1"></i>Skill Graph Engine
+      </span>
+      <span class="text-muted small">•</span>
+      <span class="text-muted small">5-Factor Mastery Analytics</span>
+    </div>
+    <h2 class="fw-bold mb-1">Algorithmic Skill Graph & Pattern Mastery</h2>
+    <p class="text-muted small mb-0">
+      Understand what DSA patterns you actually master vs. what you've only memorized or brute-forced.
+    </p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <a href="{% url 'problem_list' %}" class="btn btn-secondary-custom btn-sm d-flex align-items-center gap-1">
+      <i class="bi bi-collection"></i>
+      <span>Problem Bank</span>
+    </a>
+    <a href="{% url 'problem_create' %}" class="btn btn-primary-custom btn-sm d-flex align-items-center gap-2">
+      <i class="bi bi-plus-lg"></i>
+      <span>Add Problem</span>
+    </a>
+  </div>
+</div>
+
+<!-- High-Level Readiness & Diagnostic Summary Grid -->
+<div class="row g-3 mb-4">
+  <!-- Overall Algorithmic Readiness -->
+  <div class="col-12 col-md-6 col-lg-3">
+    <div class="kpi-card" style="--kpi-accent: #6366f1; --kpi-bg: rgba(99, 102, 241, 0.12);">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="kpi-label">Interview Readiness</span>
+        <div class="kpi-icon" style="color: #6366f1;"><i class="bi bi-speedometer2"></i></div>
+      </div>
+      <div class="d-flex align-items-baseline gap-2">
+        <div class="kpi-value text-primary">{{ matrix.overall_readiness_score }}%</div>
+        <span class="text-muted small">readiness</span>
+      </div>
+      <div class="progress mt-2" style="height: 6px; background: rgba(99, 102, 241, 0.15);">
+        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ matrix.overall_readiness_score }}%;" aria-valuenow="{{ matrix.overall_readiness_score }}" aria-valuemin="0" aria-valuemax="100"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Strong Patterns -->
+  <div class="col-6 col-md-6 col-lg-3">
+    <div class="kpi-card" style="--kpi-accent: #10b981; --kpi-bg: rgba(16, 185, 129, 0.12);">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="kpi-label">Strong Mastery</span>
+        <div class="kpi-icon" style="color: #10b981;"><i class="bi bi-patch-check-fill"></i></div>
+      </div>
+      <div class="kpi-value text-success">{{ matrix.diagnostics.strong|length }}</div>
+      <div class="text-muted small mt-1">
+        High accuracy & retention
+      </div>
+    </div>
+  </div>
+
+  <!-- Weak Patterns -->
+  <div class="col-6 col-md-6 col-lg-3">
+    <div class="kpi-card" style="--kpi-accent: #ef4444; --kpi-bg: rgba(239, 68, 68, 0.12);">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="kpi-label">Weak / Struggling</span>
+        <div class="kpi-icon" style="color: #ef4444;"><i class="bi bi-exclamation-triangle-fill"></i></div>
+      </div>
+      <div class="kpi-value text-danger">{{ matrix.diagnostics.weak|length }}</div>
+      <div class="text-muted small mt-1">
+        Low 1st attempt or slow solve
+      </div>
+    </div>
+  </div>
+
+  <!-- Forgotten / Decayed Retention -->
+  <div class="col-6 col-md-6 col-lg-3">
+    <div class="kpi-card" style="--kpi-accent: #f59e0b; --kpi-bg: rgba(245, 158, 11, 0.12);">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="kpi-label">Decayed / Forgotten</span>
+        <div class="kpi-icon" style="color: #f59e0b;"><i class="bi bi-clock-history"></i></div>
+      </div>
+      <div class="kpi-value text-warning">{{ matrix.diagnostics.forgotten|length }}</div>
+      <div class="text-muted small mt-1">
+        Overdue SM-2 review dates
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Diagnostic Action Cards: Next Frontiers & Weak Areas -->
+<div class="row g-4 mb-4">
+  <!-- Next Frontier Recommendations -->
+  <div class="col-lg-6">
+    <div class="card card-custom h-100">
+      <div class="card-header-custom d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-compass text-primary"></i>
+          <span>Next Frontier: Recommended to Learn Next</span>
+        </div>
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle small">Prerequisites Met</span>
+      </div>
+      <div class="card-body p-3 p-md-4">
+        {% if matrix.diagnostics.next_frontiers %}
+          <div class="d-flex flex-column gap-3">
+            {% for item in matrix.diagnostics.next_frontiers %}
+              <div class="p-3 rounded border" style="background: var(--bg-surface-subtle); border-color: var(--border-color) !important;">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="fw-bold">{{ item.name }}</span>
+                    <span class="badge bg-body-secondary text-muted border font-mono small">{{ item.difficulty_baseline }}</span>
+                  </div>
+                  <a href="{% url 'problem_list' %}?pattern={{ item.key }}" class="btn btn-outline-primary btn-sm py-0 px-2 small">
+                    Solve &rarr;
+                  </a>
+                </div>
+                <p class="text-muted small mb-0">{{ item.description }}</p>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-4 text-muted small">
+            <i class="bi bi-trophy fs-3 d-block mb-2 text-warning opacity-75"></i>
+            All frontier patterns unlocked or in active practice!
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Priority Focus: Weak & Decayed Patterns -->
+  <div class="col-lg-6">
+    <div class="card card-custom h-100">
+      <div class="card-header-custom d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-shield-exclamation text-danger"></i>
+          <span>Critical Practice Focus (Weak & Decayed)</span>
+        </div>
+        <span class="badge bg-danger-subtle text-danger border border-danger-subtle small">Action Needed</span>
+      </div>
+      <div class="card-body p-3 p-md-4">
+        {% if matrix.diagnostics.weak or matrix.diagnostics.forgotten %}
+          <div class="d-flex flex-column gap-3">
+            {% for item in matrix.diagnostics.weak %}
+              <div class="p-3 rounded border" style="background: rgba(239, 68, 68, 0.04); border-color: rgba(239, 68, 68, 0.2) !important;">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="fw-bold text-danger">{{ item.name }}</span>
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle small">Mastery: {{ item.mastery_score }}%</span>
+                  </div>
+                  <a href="{% url 'problem_list' %}?pattern={{ item.key }}" class="btn btn-outline-danger btn-sm py-0 px-2 small">
+                    Practice Now
+                  </a>
+                </div>
+                <div class="d-flex gap-3 small text-muted mt-1">
+                  <span>1st Attempt Acc: <strong>{{ item.first_attempt_accuracy }}%</strong></span>
+                  <span>•</span>
+                  <span>Avg Time: <strong>{{ item.avg_solve_time }}m</strong> (Target: {{ item.benchmark_time }}m)</span>
+                </div>
+              </div>
+            {% endfor %}
+
+            {% for item in matrix.diagnostics.forgotten %}
+              <div class="p-3 rounded border" style="background: rgba(245, 158, 11, 0.04); border-color: rgba(245, 158, 11, 0.2) !important;">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="fw-bold text-warning">{{ item.name }}</span>
+                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle small">Decayed Retention: {{ item.retention_score }}%</span>
+                  </div>
+                  <a href="{% url 'revision_today' %}" class="btn btn-outline-warning btn-sm py-0 px-2 small">
+                    Review Queue
+                  </a>
+                </div>
+                <div class="small text-muted mt-1">
+                  Overdue review schedule detected. Perform active recall revision to prevent long-term memory loss.
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-4 text-muted small">
+            <i class="bi bi-shield-check fs-3 d-block mb-2 text-success opacity-75"></i>
+            No critical weak or decayed patterns detected! Great retention consistency.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Topological DSA Skill Graph Branches -->
+<h4 class="fw-bold mb-3 d-flex align-items-center gap-2">
+  <i class="bi bi-diagram-3 text-primary"></i>
+  <span>Skill Graph Topological Branches</span>
+</h4>
+
+<div class="row g-4 mb-4">
+  {% for branch in matrix.branches %}
+    <div class="col-12 col-xl-6">
+      <div class="card card-custom h-100">
+        <!-- Branch Header -->
+        <div class="card-header-custom d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center gap-2">
+            <div style="width: 28px; height: 28px; border-radius: 6px; background: {{ branch.color }}; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.85rem;">
+              <i class="bi {{ branch.icon }}"></i>
+            </div>
+            <span class="fw-bold">{{ branch.name }}</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="small text-muted font-mono">{{ branch.mastered_count }}/{{ branch.patterns_count }} Mastered</span>
+            <span class="badge border font-mono" style="background: rgba(99, 102, 241, 0.08); color: {{ branch.color }}; border-color: {{ branch.color }} !important;">
+              {{ branch.mastery_score }}%
+            </span>
+          </div>
+        </div>
+
+        <!-- Branch Progress Bar -->
+        <div class="progress" style="height: 3px; border-radius: 0; background: var(--bg-surface-subtle);">
+          <div class="progress-bar" role="progressbar" style="width: {{ branch.mastery_score }}%; background: {{ branch.color }};" aria-valuenow="{{ branch.mastery_score }}" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+
+        <!-- Branch Pattern Nodes Grid -->
+        <div class="card-body p-3 p-md-4">
+          <div class="d-flex flex-column gap-3">
+            {% for p in branch.patterns %}
+              <div class="p-3 rounded border transition-all" style="background: var(--bg-surface); border-color: var(--border-color) !important;">
+                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-2">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="fw-bold fs-6">{{ p.name }}</span>
+                    <span class="badge border font-mono" style="font-size: 0.72rem; background: rgba(0,0,0,0.03); color: {{ p.status_color }}; border-color: {{ p.status_color }} !important;">
+                      {{ p.status_label }}
+                    </span>
+                  </div>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="small font-mono fw-bold" style="color: {{ p.status_color }};">{{ p.mastery_score }}%</span>
+                    <a href="{% url 'problem_list' %}?pattern={{ p.key }}" class="btn btn-sm btn-link text-decoration-none p-0 small" title="View problems of this pattern">
+                      View ({{ p.total_solved }}) &rarr;
+                    </a>
+                  </div>
+                </div>
+
+                <!-- Mastery Metric Bar -->
+                <div class="progress mb-2" style="height: 6px; background: var(--bg-surface-subtle);">
+                  <div class="progress-bar" role="progressbar" style="width: {{ p.mastery_score }}%; background: {{ p.status_color }};" aria-valuenow="{{ p.mastery_score }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+
+                <!-- Pattern Diagnostic Metrics Pill Row -->
+                <div class="d-flex flex-wrap align-items-center gap-2 small text-muted" style="font-size: 0.75rem;">
+                  <span>Solved: <strong>{{ p.total_solved }}</strong> (<span class="text-success">{{ p.easy_count }}E</span>/<span class="text-warning">{{ p.med_count }}M</span>/<span class="text-danger">{{ p.hard_count }}H</span>)</span>
+                  <span>•</span>
+                  <span>1st Attempt: <strong>{{ p.first_attempt_accuracy }}%</strong></span>
+                  <span>•</span>
+                  <span>Avg Time: <strong>{{ p.avg_solve_time }}m</strong> (Bench: {{ p.benchmark_time }}m)</span>
+                  <span>•</span>
+                  <span>Retention: <strong>{{ p.retention_score }}%</strong></span>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<!-- Modal: Pattern Deep Dive -->
+<div class="modal fade" id="patternDetailModal" tabindex="-1" aria-labelledby="patternDetailModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-color);">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold" id="patternDetailModalLabel">Pattern Diagnostics</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4" id="patternModalBody">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
