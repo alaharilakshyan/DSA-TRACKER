@@ -92,7 +92,7 @@ smart_dsa_tracker/
 │   │   └── stats.py              # Aggregation queries for dashboard analytics
 │   ├── management/
 │   │   └── commands/
-│   │       └── populate_sample_data.py # Demo data generator
+│   │       └── seed_canonical_questions.py # Canonical question bank seeder
 │   ├── templates/tracker/
 │   │   ├── dashboard.html        # Interactive analytics dashboard with Chart.js
 │   │   ├── problem_list.html     # Filterable problem bank with quick actions
@@ -126,8 +126,8 @@ pip install -r requirements.txt
 # Apply database migrations (automatically seeds standard DSA topics)
 python manage.py migrate
 
-# (Optional) Seed realistic demo data (problems, attempts, SM-2 schedules)
-python manage.py populate_sample_data
+# (Optional) Seed the Canonical Interview Question Bank
+python manage.py seed_canonical_questions
 
 # Run automated test suite
 python manage.py test
@@ -137,10 +137,7 @@ python manage.py runserver
 ```
 
 Open **`http://127.0.0.1:8000/`** in your browser.
-- Demo account credentials:
-  - **Username**: `demo`
-  - **Password**: `demo1234`
-- Or register a brand new account at `http://127.0.0.1:8000/accounts/signup/`.
+Register an account or log in at `http://127.0.0.1:8000/accounts/signup/`.
 
 ---
 
