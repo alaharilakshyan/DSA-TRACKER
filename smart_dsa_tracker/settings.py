@@ -110,6 +110,13 @@ DATABASES = {
     )
 }
 
+# Neon Configuration & Auth References
+NEON_PROJECT_ID = os.environ.get('NEON_PROJECT_ID', '')
+NEON_BRANCH_ID = os.environ.get('NEON_BRANCH_ID', '')
+NEON_AUTH_URL = os.environ.get('NEON_AUTH_URL', '')
+NEON_JWKS_URL = os.environ.get('NEON_JWKS_URL', '')
+
+
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
