@@ -110,11 +110,19 @@ DATABASES = {
     )
 }
 
-# Neon Configuration & Auth References
+# Neon Configuration & Services
 NEON_PROJECT_ID = os.environ.get('NEON_PROJECT_ID', '')
 NEON_BRANCH_ID = os.environ.get('NEON_BRANCH_ID', '')
 NEON_AUTH_URL = os.environ.get('NEON_AUTH_URL', '')
 NEON_JWKS_URL = os.environ.get('NEON_JWKS_URL', '')
+NEON_REST_API_URL = os.environ.get('NEON_REST_API_URL', '')
+
+# Neon S3-Compatible Object Storage (AWS SDK compatible)
+AWS_ENDPOINT_URL_S3 = os.environ.get('AWS_ENDPOINT_URL_S3', '')
+AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID', '')
+AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', '')
+AWS_REGION = os.environ.get('AWS_REGION', 'ap-southeast-1')
+
 
 
 
