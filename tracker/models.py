@@ -202,6 +202,17 @@ class InterviewQuestionAttempt(models.Model):
         q_title = self.canonical_question.title if self.canonical_question else (self.user_problem.title if self.user_problem else f"Question {self.question_order}")
         return f"Q{self.question_order}: {q_title} in Session #{self.session.id}"
 
+    @property
+    def time_taken_formatted(self):
+        secs = self.time_taken_seconds or 0
+        mins = secs // 60
+        rem_secs = secs % 60
+        return f"{mins}m {rem_secs}s"
+
+    @property
+    def hint_penalty_percent(self):
+        return (self.hints_revealed or 0) * 10
+
 
 class InterviewReport(models.Model):
     session = models.OneToOneField(InterviewSession, on_delete=models.CASCADE, related_name="report")

@@ -186,11 +186,7 @@
         <div class="kpi-icon" style="color: #f59e0b;"><i class="bi bi-stopwatch-fill"></i></div>
       </div>
       <div class="kpi-value">
-        {% if kpis.total_time_minutes >= 60 %}
-          {{ kpis.total_time_minutes|divisibleby:60 }}h
-        {% else %}
-          {{ kpis.total_time_minutes }}m
-        {% endif %}
+        {{ kpis.total_time_display }}
       </div>
       <div class="text-muted small mt-1">
         Across <strong>{{ kpis.total_attempts }}</strong> attempt{{ kpis.total_attempts|pluralize }} ({{ kpis.success_rate }}% success)

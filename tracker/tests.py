@@ -2,7 +2,7 @@ from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.urls import reverse
 
-from .models import Topic, Problem, RevisionSchedule
+from .models import Topic, Problem, RevisionSchedule, InterviewSession, InterviewQuestionAttempt
 from .services.revision_engine import update_revision_schedule
 from .services.stats import get_weak_patterns, get_dashboard_kpis
 
@@ -129,6 +129,7 @@ class TrackerViewsAndSecurityTests(TestCase):
         kpis = get_dashboard_kpis(self.user1)
         self.assertEqual(kpis["total_attempts"], 1)
         self.assertEqual(kpis["total_time_minutes"], 35)
+        self.assertEqual(kpis["total_time_display"], "35m")
 
         weak_patterns = get_weak_patterns(self.user1)
         self.assertEqual(len(weak_patterns), 1)
@@ -305,6 +306,25 @@ class TrackerViewsAndSecurityTests(TestCase):
         res_report = self.client.get(reverse("interview_report", args=[session_id]))
         self.assertEqual(res_report.status_code, 200)
         self.assertContains(res_report, "Performance Report")
+
+    def test_interview_question_attempt_properties(self):
+        """InterviewQuestionAttempt formatted time and hint penalty properties work correctly."""
+        session = InterviewSession.objects.create(user=self.user1)
+        q_attempt = InterviewQuestionAttempt.objects.create(
+            session=session,
+            time_taken_seconds=125,
+            hints_revealed=2,
+        )
+        self.assertEqual(q_attempt.time_taken_formatted, "2m 5s")
+        self.assertEqual(q_attempt.hint_penalty_percent, 20)
+
+        q_attempt_short = InterviewQuestionAttempt.objects.create(
+            session=session,
+            time_taken_seconds=45,
+            hints_revealed=0,
+        )
+        self.assertEqual(q_attempt_short.time_taken_formatted, "0m 45s")
+        self.assertEqual(q_attempt_short.hint_penalty_percent, 0)
 
     def test_landing_page_and_guest_navbar(self):
         """Unauthenticated visitor sees landing hero page with login, sign up, and features."""

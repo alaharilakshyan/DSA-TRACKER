@@ -199,7 +199,7 @@
                     {{ q.canonical_question.get_pattern_display }}
                   </td>
                   <td class="py-3 font-mono small text-muted">
-                    {{ q.time_taken_seconds|divisibleby:60 }}m {{ q.time_taken_seconds|default:0 }}s
+                    {{ q.time_taken_formatted }}
                   </td>
                   <td class="py-3 font-mono small">
                     {% if q.hints_revealed > 0 %}

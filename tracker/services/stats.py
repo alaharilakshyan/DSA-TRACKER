@@ -52,6 +52,14 @@ def get_dashboard_kpis(user):
     success_rate = round((successful_attempts / total_attempts * 100), 1) if total_attempts > 0 else 0
     total_time_mins = attempts.aggregate(total_time=Sum("time_taken_minutes"))["total_time"] or 0
 
+    # Format practice time cleanly (e.g. "2h 15m", "2h", or "45m")
+    hours = total_time_mins // 60
+    mins = total_time_mins % 60
+    if hours > 0:
+        total_time_display = f"{hours}h {mins}m" if mins > 0 else f"{hours}h"
+    else:
+        total_time_display = f"{mins}m"
+
     today = timezone.now().date()
     revisions_due = RevisionSchedule.objects.filter(
         problem__user=user,
@@ -65,5 +73,6 @@ def get_dashboard_kpis(user):
         "total_attempts": total_attempts,
         "success_rate": success_rate,
         "total_time_minutes": total_time_mins,
+        "total_time_display": total_time_display,
         "revisions_due_today": revisions_due,
     }
