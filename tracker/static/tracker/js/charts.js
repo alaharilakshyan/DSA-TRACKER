@@ -24,26 +24,53 @@
   let diffChartInstance = null;
   let patternChartInstance = null;
 
+  function getJsonData(id, fallback) {
+    try {
+      const el = document.getElementById(id);
+      if (el && el.textContent) {
+        return JSON.parse(el.textContent);
+      }
+    } catch (e) {
+      // fallback
+    }
+    return fallback;
+  }
+
   function initCharts() {
     if (typeof Chart === 'undefined') {
       console.warn('Chart.js library is not loaded. Skipping chart rendering.');
       return;
     }
 
+    const topicLabels = (window.TOPIC_LABELS && window.TOPIC_LABELS.length > 0) ? window.TOPIC_LABELS : getJsonData('topic-labels-data', []);
+    const topicTotals = (window.TOPIC_TOTALS && window.TOPIC_TOTALS.length > 0) ? window.TOPIC_TOTALS : getJsonData('topic-totals-data', []);
+    const topicMastered = (window.TOPIC_MASTERED && window.TOPIC_MASTERED.length > 0) ? window.TOPIC_MASTERED : getJsonData('topic-mastered-data', []);
+    const diffCounts = (window.DIFF_COUNTS && window.DIFF_COUNTS.length > 0) ? window.DIFF_COUNTS : getJsonData('diff-counts-data', [0, 0, 0]);
+    const patternLabels = (window.PATTERN_LABELS && window.PATTERN_LABELS.length > 0) ? window.PATTERN_LABELS : getJsonData('pattern-labels-data', []);
+    const patternAvgTimes = (window.PATTERN_AVG_TIMES && window.PATTERN_AVG_TIMES.length > 0) ? window.PATTERN_AVG_TIMES : getJsonData('pattern-avg-times-data', []);
+
+    // Expose on window for diagnostics & debugging
+    window.TOPIC_LABELS = topicLabels;
+    window.TOPIC_TOTALS = topicTotals;
+    window.TOPIC_MASTERED = topicMastered;
+    window.DIFF_COUNTS = diffCounts;
+    window.PATTERN_LABELS = patternLabels;
+    window.PATTERN_AVG_TIMES = patternAvgTimes;
+
     // 1. Topic Progress Bar Chart
     const topicCanvas = document.getElementById('topicChart');
-    if (topicCanvas && window.TOPIC_LABELS && window.TOPIC_LABELS.length > 0) {
+    if (topicCanvas && topicLabels && topicLabels.length > 0) {
       const colors = getThemeColors();
       const ctx = topicCanvas.getContext('2d');
 
       topicChartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: window.TOPIC_LABELS,
+          labels: topicLabels,
           datasets: [
             {
               label: 'Total Solved',
-              data: window.TOPIC_TOTALS || [],
+              data: topicTotals,
               backgroundColor: colors.primarySubtle,
               borderColor: colors.primary,
               borderWidth: 1.5,
@@ -51,7 +78,7 @@
             },
             {
               label: 'Mastered ⭐',
-              data: window.TOPIC_MASTERED || [],
+              data: topicMastered,
               backgroundColor: colors.successSubtle,
               borderColor: colors.success,
               borderWidth: 1.5,
@@ -104,7 +131,7 @@
 
     // 2. Difficulty Breakdown Doughnut Chart
     const diffCanvas = document.getElementById('difficultyChart');
-    if (diffCanvas && window.DIFF_COUNTS && window.DIFF_COUNTS.some(c => c > 0)) {
+    if (diffCanvas && diffCounts && diffCounts.some(c => c > 0)) {
       const colors = getThemeColors();
       const ctx = diffCanvas.getContext('2d');
 
@@ -114,7 +141,7 @@
           labels: ['Easy', 'Medium', 'Hard'],
           datasets: [
             {
-              data: window.DIFF_COUNTS,
+              data: diffCounts,
               backgroundColor: [colors.success, colors.warning, colors.danger],
               borderWidth: 2,
               borderColor: isDarkMode() ? '#111827' : '#ffffff',
@@ -145,18 +172,18 @@
 
     // 3. Weak Patterns Average Solve Time Chart
     const patternCanvas = document.getElementById('weakPatternChart');
-    if (patternCanvas && window.PATTERN_LABELS && window.PATTERN_LABELS.length > 0) {
+    if (patternCanvas && patternLabels && patternLabels.length > 0) {
       const colors = getThemeColors();
       const ctx = patternCanvas.getContext('2d');
 
       patternChartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: window.PATTERN_LABELS,
+          labels: patternLabels,
           datasets: [
             {
               label: 'Avg Minutes to Solve',
-              data: window.PATTERN_AVG_TIMES || [],
+              data: patternAvgTimes,
               backgroundColor: 'rgba(244, 63, 94, 0.2)',
               borderColor: colors.danger,
               borderWidth: 1.5,

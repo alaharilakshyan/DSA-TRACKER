@@ -439,27 +439,6 @@
 {{ pattern_labels_data|json_script:"pattern-labels-data" }}
 {{ pattern_avg_times_data|json_script:"pattern-avg-times-data" }}
 
-<script>
-  (function () {
-    function getJsonData(id, fallback) {
-      try {
-        var el = document.getElementById(id);
-        if (el && el.textContent) {
-          return JSON.parse(el.textContent);
-        }
-      } catch (err) {
-        console.warn('Could not parse JSON element', id, err);
-      }
-      return fallback;
-    }
-
-    window.TOPIC_LABELS = getJsonData('topic-labels-data', {{ topic_labels_json|default:"[]"|safe }});
-    window.TOPIC_TOTALS = getJsonData('topic-totals-data', {{ topic_totals_json|default:"[]"|safe }});
-    window.TOPIC_MASTERED = getJsonData('topic-mastered-data', {{ topic_mastered_json|default:"[]"|safe }});
-    window.DIFF_COUNTS = getJsonData('diff-counts-data', {{ diff_counts_json|default:"[0, 0, 0]"|safe }});
-    window.PATTERN_LABELS = getJsonData('pattern-labels-data', {{ pattern_labels_json|default:"[]"|safe }});
-    window.PATTERN_AVG_TIMES = getJsonData('pattern-avg-times-data', {{ pattern_avg_times_json|default:"[]"|safe }});
-  })();
-</script>
+<!-- Dashboard Charts Initialization -->
 <script src="{% static 'tracker/js/charts.js' %}"></script>
 {% endblock %}
