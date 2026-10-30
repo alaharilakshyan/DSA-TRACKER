@@ -99,6 +99,17 @@ def dashboard(request):
         ]),
         "pattern_labels_json": json.dumps(pattern_labels),
         "pattern_avg_times_json": json.dumps(pattern_avg_times),
+        # Structured data for safe json_script template tags
+        "topic_labels_data": topic_labels,
+        "topic_totals_data": topic_totals,
+        "topic_mastered_data": topic_mastered,
+        "diff_counts_data": [
+            diff_counts["EASY"],
+            diff_counts["MEDIUM"],
+            diff_counts["HARD"]
+        ],
+        "pattern_labels_data": pattern_labels,
+        "pattern_avg_times_data": pattern_avg_times,
         "user_profile": getattr(user, "profile", None),
     }
     return render(request, "tracker/dashboard.html", context)

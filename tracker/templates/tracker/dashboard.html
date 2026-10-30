@@ -430,14 +430,36 @@
 {% block extra_js %}
 <!-- Chart.js CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-<!-- Pass View Context to charts.js -->
+
+<!-- Safely pass View Context to JS using Django's official json_script tags -->
+{{ topic_labels_data|json_script:"topic-labels-data" }}
+{{ topic_totals_data|json_script:"topic-totals-data" }}
+{{ topic_mastered_data|json_script:"topic-mastered-data" }}
+{{ diff_counts_data|json_script:"diff-counts-data" }}
+{{ pattern_labels_data|json_script:"pattern-labels-data" }}
+{{ pattern_avg_times_data|json_script:"pattern-avg-times-data" }}
+
 <script>
-  window.TOPIC_LABELS = {{ topic_labels_json|safe }};
-  window.TOPIC_TOTALS = {{ topic_totals_json|safe }};
-  window.TOPIC_MASTERED = {{ topic_mastered_json|safe }};
-  window.DIFF_COUNTS = {{ diff_counts_json|safe }};
-  window.PATTERN_LABELS = {{ pattern_labels_json|safe }};
-  window.PATTERN_AVG_TIMES = {{ pattern_avg_times_json|safe }};
+  (function () {
+    function getJsonData(id, fallback) {
+      try {
+        var el = document.getElementById(id);
+        if (el && el.textContent) {
+          return JSON.parse(el.textContent);
+        }
+      } catch (err) {
+        console.warn('Could not parse JSON element', id, err);
+      }
+      return fallback;
+    }
+
+    window.TOPIC_LABELS = getJsonData('topic-labels-data', {{ topic_labels_json|default:"[]"|safe }});
+    window.TOPIC_TOTALS = getJsonData('topic-totals-data', {{ topic_totals_json|default:"[]"|safe }});
+    window.TOPIC_MASTERED = getJsonData('topic-mastered-data', {{ topic_mastered_json|default:"[]"|safe }});
+    window.DIFF_COUNTS = getJsonData('diff-counts-data', {{ diff_counts_json|default:"[0, 0, 0]"|safe }});
+    window.PATTERN_LABELS = getJsonData('pattern-labels-data', {{ pattern_labels_json|default:"[]"|safe }});
+    window.PATTERN_AVG_TIMES = getJsonData('pattern-avg-times-data', {{ pattern_avg_times_json|default:"[]"|safe }});
+  })();
 </script>
 <script src="{% static 'tracker/js/charts.js' %}"></script>
 {% endblock %}
